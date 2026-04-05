@@ -17,8 +17,8 @@ manifest:
           - hal_stm32
           - mcuboot
           - mbedtls
+          - zcbor
           #- segger
           #- lvgl
-          #- zcbor
           #- mcumgr
           #- littlefs
