@@ -15,6 +15,7 @@ manifest:
         name-allowlist:
           - cmsis_6 # required by the ARM port
           - hal_stm32
+          - mcuboot
           #- segger
           #- lvgl
           #- zcbor

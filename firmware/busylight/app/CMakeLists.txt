@@ -6,7 +6,7 @@ project(app LANGUAGES C CXX)
 # Verify that this sample is built through sysbuild to ensure MCUboot is
 # automatically included and that sample specific MCUboot configurations are
 # used when building MCUboot.
-test_sysbuild()
+test_sysbuild(REQUIRED)
 
 target_compile_options(app PRIVATE
     -Wall -Wextra

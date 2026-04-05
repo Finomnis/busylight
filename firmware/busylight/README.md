@@ -32,7 +32,7 @@ west update
 west packages pip --install
 
 # Fetch required SDK
-(cd zephyr; west sdk install -t arm-zephyr-eabi x86_64-zephyr-elf aarch64-zephyr-elf)
+(cd zephyr; west sdk install -t arm-zephyr-eabi x86_64-zephyr-elf)
 
 # Open the app workspace in VSCode
 code ./busylight/busylight.code-workspace
@@ -44,6 +44,6 @@ code ./busylight/busylight.code-workspace
 - Then, run:
   ```bash
   source ../.venv/bin/activate
-  west flash
+  west flash --domain app
   ```
 - Connect to UART to see log/shell.
