@@ -1,0 +1,23 @@
+manifest:
+  self:
+    path: busylight
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.3.0
+      import:
+        # By using name-allowlist we can clone only the modules that are
+        # strictly needed by the application.
+        name-allowlist:
+          - cmsis_6 # required by the ARM port
+          - hal_stm32
+          #- segger
+          #- lvgl
+          #- zcbor
+          #- mcumgr
+          #- littlefs
+          #- mbedtls
