@@ -1,0 +1,34 @@
+---
+Language: Cpp
+
+BasedOnStyle: LLVM
+IndentWidth: 4
+
+ColumnLimit: 0
+
+Cpp11BracedListStyle: true
+
+AlignConsecutiveMacros:
+    Enabled: true
+    AcrossEmptyLines: true
+    AcrossComments: true
+AlignConsecutiveAssignments:
+    Enabled: true
+    AcrossEmptyLines: false
+    AcrossComments: true
+
+AllowShortCaseLabelsOnASingleLine: true
+
+ReflowComments: false
+
+InsertBraces: true
+
+BreakBeforeBinaryOperators: true
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterControlStatement: Never
+    AfterFunction: true
+    AfterEnum: false
+    AfterStruct: false
+    BeforeElse: true
