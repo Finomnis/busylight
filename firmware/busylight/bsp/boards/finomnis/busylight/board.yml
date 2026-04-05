@@ -1,0 +1,6 @@
+board:
+  name: busylight
+  full_name: BUSYLIGHT
+  vendor: finomnis
+  socs:
+    - name: stm32u073xx

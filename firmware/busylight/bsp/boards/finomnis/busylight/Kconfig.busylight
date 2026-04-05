@@ -1,0 +1,2 @@
+config BOARD_BUSYLIGHT
+	select SOC_STM32U073XX

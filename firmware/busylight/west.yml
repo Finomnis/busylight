@@ -16,9 +16,9 @@ manifest:
           - cmsis_6 # required by the ARM port
           - hal_stm32
           - mcuboot
+          - mbedtls
           #- segger
           #- lvgl
           #- zcbor
           #- mcumgr
           #- littlefs
-          #- mbedtls
