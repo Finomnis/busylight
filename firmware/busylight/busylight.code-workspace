@@ -1,7 +1,7 @@
 {
     "folders": [
         {
-            "name": "usb-pd-monitor",
+            "name": "busylight",
             "path": ".",
         },
         {
@@ -11,9 +11,9 @@
     ],
     "settings": {
         "C_Cpp.autoAddFileAssociations": false,
-        "C_Cpp.default.compileCommands": "${workspaceFolder:usb-pd-monitor}/build/compile_commands.json",
+        "C_Cpp.default.compileCommands": "${workspaceFolder:busylight}/build/app/compile_commands.json",
         "cmake.generator": "Ninja",
-        "cmake.sourceDirectory": "${workspaceFolder:usb-pd-monitor}/app",
+        "cmake.sourceDirectory": "${workspaceFolder:busylight}/app",
         "cmake.showSystemKits": false,
         "cmake.configureOnOpen": false,
         "cmake.configureOnEdit": false,
