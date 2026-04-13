@@ -3,6 +3,8 @@
 #include <st/u0/stm32u073ccux-pinctrl.dtsi>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/input/stm32-tsc-defines.h>
+#include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/led/worldsemi_ws2812c.h>
 
 / {
     model = "Finomnis Busylight board";
@@ -32,6 +34,7 @@
 
     aliases {
         mcuboot-button0 = &button0;
+        rgb-led = &rgb_led;
     };
 };
 
@@ -126,4 +129,26 @@ zephyr_udc0: &usb {
 &clk48 {
     clocks = <&rcc STM32_SRC_HSI48 CLK48_SEL(3)>;
     status = "okay";
+};
+
+&spi1 {
+    pinctrl-0 = <&spi1_mosi_pa7>;
+    pinctrl-names = "default";
+    status = "okay";
+
+    rgb_led: ws2812@0 {
+        compatible = "worldsemi,ws2812-spi";
+        status = "okay";
+
+        reg = <0x0>;
+        spi-max-frequency = <WS2812C_SPI_FREQ>;
+
+        chain-length = <1>;
+        color-mapping = <LED_COLOR_ID_GREEN
+                         LED_COLOR_ID_RED
+                         LED_COLOR_ID_BLUE>;
+        spi-one-frame = <WS2812C_ONE_FRAME>;
+        spi-zero-frame = <WS2812C_ZERO_FRAME>;
+        reset-delay = <250>;
+    };
 };
