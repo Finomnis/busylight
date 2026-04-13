@@ -5,6 +5,8 @@
 #include <zephyr/dt-bindings/input/stm32-tsc-defines.h>
 #include <zephyr/dt-bindings/led/led.h>
 #include <zephyr/dt-bindings/led/worldsemi_ws2812c.h>
+#include <zephyr/dt-bindings/dma/stm32_dma.h>
+#include <zephyr/dt-bindings/spi/spi.h>
 
 / {
     model = "Finomnis Busylight board";
@@ -36,6 +38,22 @@
         mcuboot-button0 = &button0;
         led-strip = &led_strip;
     };
+
+    led_strip: ws2812 {
+        status = "okay";
+        compatible = "worldsemi,ws2812-gpio";
+        chain-length = <1>;
+        color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+        gpios = <&gpioa 7 0>;
+    };
+};
+
+&dma1 {
+    status = "okay";
+};
+
+&dmamux1 {
+    status = "okay";
 };
 
 &sram1 {
@@ -137,16 +155,30 @@ zephyr_udc0: &usb {
     st,soft-nss;
     status = "okay";
 
-    led_strip: ws2812@0 {
-        compatible = "worldsemi,ws2812-spi";
-        status = "okay";
+    /*
+     * STM32U0 DMAMUX request IDs:
+     *   SPI1_RX = 36
+     *   SPI1_TX = 37
+     *
+     * For WS2812 over SPI, TX is the important one.
+     */
+    dmas = <&dmamux1 0 37 (STM32_DMA_PERIPH_TX | STM32_DMA_PRIORITY_HIGH)>;
+    dma-names = "tx";
 
-        reg = <0x0>;
-        spi-max-frequency = <WS2812C_SPI_FREQ>;
+    // led_strip: ws2812@0 {
+    //     compatible = "worldsemi,ws2812-spi";
+    //     status = "okay";
 
-        chain-length = <1>;
-        color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
-        spi-one-frame = <WS2812C_ONE_FRAME>;
-        spi-zero-frame = <WS2812C_ZERO_FRAME>;
-    };
+    //     reg = <0x0>;
+    //     spi-max-frequency = <WS2812C_SPI_FREQ>;
+    //     duplex = <SPI_HALF_DUPLEX>;
+
+    //     chain-length = <1>;
+    //     color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+
+    //     spi-max-frequency = <4000000>;
+    //     bits-per-symbol = <4>;
+    //     spi-one-frame = <0xE>;
+    //     spi-zero-frame = <0x8>;
+    // };
 };
