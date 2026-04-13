@@ -47,3 +47,9 @@ code ./busylight/busylight.code-workspace
   west flash --domain app
   ```
 - Connect to UART to see log/shell.
+
+### CLI manual building
+
+```bash
+west build -b busylight --sysbuild app
+```
