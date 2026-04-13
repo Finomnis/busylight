@@ -9,7 +9,7 @@
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_DBG);
 
-static const struct device *led_strip = DEVICE_DT_GET(DT_ALIAS(rgb_led));
+static const struct device *led_strip = DEVICE_DT_GET(DT_ALIAS(led_strip));
 
 int main(void)
 {
@@ -30,11 +30,11 @@ int main(void)
         .b = 100,
     };
 
-    // int success = led_strip_update_rgb(led_strip, &color, 1);
+    int success = led_strip_update_rgb(led_strip, &color, 1);
 
-    // if (0 != success) {
-    //     LOG_ERR("Failed to set color: %d", success);
-    // }
+    if (0 != success) {
+        LOG_ERR("Failed to set color: %d", success);
+    }
 
     return 0;
 }
