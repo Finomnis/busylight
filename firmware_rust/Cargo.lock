@@ -30,6 +30,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-button"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6cb2c64198ecf080dccccff92166ee0eb0fc1b22b15546903d59ea31ad76f6d"
+dependencies = [
+ "cfg-if",
+ "embassy-time 0.4.0",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -262,7 +274,7 @@ dependencies = [
  "embassy-futures",
  "embassy-hal-internal 0.4.0",
  "embassy-sync",
- "embassy-time",
+ "embassy-time 0.5.1",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
@@ -373,7 +385,7 @@ dependencies = [
  "embassy-hal-internal 0.5.0",
  "embassy-net-driver",
  "embassy-sync",
- "embassy-time",
+ "embassy-time 0.5.1",
  "embassy-time-driver",
  "embassy-time-queue-utils",
  "embassy-usb-driver",
@@ -408,6 +420,7 @@ dependencies = [
 name = "embassy-stm32u0-examples"
 version = "0.1.0"
 dependencies = [
+ "async-button",
  "chrono",
  "cortex-m",
  "cortex-m-rt",
@@ -417,7 +430,7 @@ dependencies = [
  "embassy-futures",
  "embassy-stm32",
  "embassy-sync",
- "embassy-time",
+ "embassy-time 0.5.1",
  "embassy-usb",
  "embedded-hal-async",
  "micromath",
@@ -437,6 +450,22 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "heapless 0.9.2",
+]
+
+[[package]]
+name = "embassy-time"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f820157f198ada183ad62e0a66f554c610cdcd1a9f27d4b316358103ced7a1f8"
+dependencies = [
+ "cfg-if",
+ "critical-section",
+ "document-features",
+ "embassy-time-driver",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "futures-util",
 ]
 
 [[package]]
@@ -486,7 +515,7 @@ dependencies = [
  "embassy-futures",
  "embassy-net-driver-channel",
  "embassy-sync",
- "embassy-time",
+ "embassy-time 0.5.1",
  "embassy-usb-driver",
  "embedded-io-async 0.7.0",
  "heapless 0.9.2",
