@@ -4,13 +4,33 @@
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_stm32::rcc::mux::Clk48sel;
-use embassy_stm32::rng::Rng;
-use embassy_stm32::{Config, bind_interrupts, peripherals, rng};
+use embassy_stm32::spi::Spi;
+use embassy_stm32::time::Hertz;
+use embassy_stm32::{Config, bind_interrupts, dma, peripherals, spi};
+use embassy_time::Delay;
+use embedded_hal_async::delay::DelayNs;
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
-    RNG_CRYP => rng::InterruptHandler<peripherals::RNG>;
+    DMA1_CH4_7_DMA2_CH1_5_DMAMUX_OVR => dma::InterruptHandler<peripherals::DMA1_CH5>;
 });
+
+async fn set_led(mut spi: impl embedded_hal_async::spi::SpiBus<u8>, color: (u8, u8, u8)) {
+    let mut data = [0u8; 14];
+    for (color_pos, &color_val) in [color.1, color.0, color.2].iter().enumerate() {
+        let color_encoded = &mut data[(color_pos * 4 + 1)..(color_pos * 4 + 5)];
+
+        fn bit(val: u8, pos: u8) -> u8 {
+            return (val >> pos) & 1;
+        }
+
+        color_encoded[0] = 0x88 + 0x60 * bit(color_val, 7) + 0x06 * bit(color_val, 6);
+        color_encoded[1] = 0x88 + 0x60 * bit(color_val, 5) + 0x06 * bit(color_val, 4);
+        color_encoded[2] = 0x88 + 0x60 * bit(color_val, 3) + 0x06 * bit(color_val, 2);
+        color_encoded[3] = 0x88 + 0x60 * bit(color_val, 1) + 0x06 * bit(color_val, 0);
+    }
+    spi.write(&data).await.unwrap();
+}
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
@@ -29,17 +49,26 @@ async fn main(_spawner: Spawner) {
         config.rcc.sys = Sysclk::PLL1_R;
         config.rcc.hsi48 = Some(Hsi48Config {
             sync_from_usb: false,
-        }); // needed for RNG
-        config.rcc.mux.clk48sel = Clk48sel::HSI48; // needed for RNG (or use MSI or PLLQ if you want)
+        });
+        config.rcc.mux.clk48sel = Clk48sel::HSI48;
     }
 
     let p = embassy_stm32::init(config);
 
-    info!("Hello World!");
+    let mut delay = Delay;
 
-    let mut rng = Rng::new(p.RNG, Irqs);
+    let mut spi_config = spi::Config::default();
+    spi_config.frequency = Hertz(3_000_000);
+    spi_config.mode = spi::MODE_1;
 
-    let mut buf = [0u8; 16];
-    unwrap!(rng.async_fill_bytes(&mut buf).await);
-    info!("random bytes: {:02x}", buf);
+    let mut spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH5, Irqs, spi_config);
+
+    loop {
+        delay.delay_ms(1000).await;
+        set_led(&mut spi, (255, 0, 0)).await;
+        delay.delay_ms(1000).await;
+        set_led(&mut spi, (255, 150, 0)).await;
+        delay.delay_ms(1000).await;
+        set_led(&mut spi, (0, 255, 0)).await;
+    }
 }
