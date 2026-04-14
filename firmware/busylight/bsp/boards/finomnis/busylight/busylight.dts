@@ -38,14 +38,6 @@
         mcuboot-button0 = &button0;
         led-strip = &led_strip;
     };
-
-    led_strip: ws2812 {
-        status = "okay";
-        compatible = "worldsemi,ws2812-gpio";
-        chain-length = <1>;
-        color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
-        gpios = <&gpioa 7 0>;
-    };
 };
 
 &dma1 {
@@ -150,9 +142,9 @@ zephyr_udc0: &usb {
 };
 
 &spi1 {
-    pinctrl-0 = <&spi1_mosi_pa7 &spi1_sck_pa1>;
+    pinctrl-0 = <&spi1_mosi_pa7 &spi1_sck_pa1 &spi1_nss_pa4>;
     pinctrl-names = "default";
-    st,soft-nss;
+    //st,soft-nss;
     status = "okay";
 
     /*
@@ -165,20 +157,20 @@ zephyr_udc0: &usb {
     dmas = <&dmamux1 0 37 (STM32_DMA_PERIPH_TX | STM32_DMA_PRIORITY_HIGH)>;
     dma-names = "tx";
 
-    // led_strip: ws2812@0 {
-    //     compatible = "worldsemi,ws2812-spi";
-    //     status = "okay";
+    led_strip: ws2812@0 {
+        compatible = "worldsemi,ws2812-spi";
+        status = "okay";
 
-    //     reg = <0x0>;
-    //     spi-max-frequency = <WS2812C_SPI_FREQ>;
-    //     duplex = <SPI_HALF_DUPLEX>;
+        reg = <0x0>;
+        spi-max-frequency = <WS2812C_SPI_FREQ>;
+        duplex = <SPI_HALF_DUPLEX>;
 
-    //     chain-length = <1>;
-    //     color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
+        chain-length = <1>;
+        color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
 
-    //     spi-max-frequency = <4000000>;
-    //     bits-per-symbol = <4>;
-    //     spi-one-frame = <0xE>;
-    //     spi-zero-frame = <0x8>;
-    // };
+        spi-max-frequency = <6000000>;
+        bits-per-symbol = <4>;
+        spi-one-frame = <0xA>;
+        spi-zero-frame = <0xA>;
+    };
 };
