@@ -65,12 +65,16 @@ async fn main(_spawner: Spawner) {
     let mut spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH5, Irqs, spi_config);
 
     let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
-    let mut button = Button::new(button, ButtonConfig::default());
+
+    let mut button_config = ButtonConfig::default();
+    button_config.double_click = core::time::Duration::ZERO.try_into().unwrap();
+
+    let mut button = Button::new(button, button_config);
 
     const COLORS: [(u8, u8, u8); 3] = [(0, 255, 0), (255, 150, 0), (255, 0, 0)];
     const OFF_COLOR: (u8, u8, u8) = (0, 0, 0);
 
-    let mut enabled = false;
+    let mut enabled = true;
     let mut color_id = 0;
 
     loop {
