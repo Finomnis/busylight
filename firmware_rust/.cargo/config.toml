@@ -6,7 +6,7 @@ runner = "probe-rs run --chip stm32u073cc"
 target = "thumbv6m-none-eabi"
 
 [env]
-DEFMT_LOG = "trace"
+DEFMT_LOG = "debug"
 
 [profile.release]
 # Allows defmt to display log locations even in release
