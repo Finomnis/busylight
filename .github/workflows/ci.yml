@@ -52,6 +52,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v6
 
+      - name: Install toolchains
+        run: rustup target add thumbv6m-none-eabi
+
       - name: Build
         working-directory: firmware_rust
         run: cargo build --release
