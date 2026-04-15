@@ -9,8 +9,8 @@ on:
 name: CI
 
 jobs:
-  firmware:
-    name: Build Firmware
+  firmware_zephyr:
+    name: Build Zephyr Firmware
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,13 +34,27 @@ jobs:
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
           app-path: busylight
-          base-path: firmware
+          base-path: firmware_zephyr
           toolchains: arm-zephyr-eabi
 
       - name: Build application
-        working-directory: firmware
+        working-directory: firmware_zephyr
         run: west build --sysbuild busylight/app -b ${{ matrix.board }} --domain app -- -DCMAKE_COMPILE_WARNING_AS_ERROR=y
 
       - name: Build full image
-        working-directory: firmware
+        working-directory: firmware_zephyr
         run: west build --sysbuild busylight/app -b ${{ matrix.board }} -- -DCMAKE_COMPILE_WARNING_AS_ERROR=y
+
+  firmware_rust:
+    name: Build Rust Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Install toolchains
+        run: rustup target add thumbv6m-none-eabi
+
+      - name: Build
+        working-directory: firmware_rust
+        run: cargo build --release
