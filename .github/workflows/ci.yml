@@ -49,6 +49,9 @@ jobs:
     name: Build Rust Firmware
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
       - name: Build
         working-directory: firmware_rust
         run: cargo build --release
