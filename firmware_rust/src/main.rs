@@ -74,7 +74,7 @@ async fn main(_spawner: Spawner) {
 
     let mut button = Button::new(button, button_config);
 
-    const COLORS: [(u8, u8, u8); 3] = [(0, 255, 0), (255, 150, 0), (255, 0, 0)];
+    const COLORS: [(u8, u8, u8); 3] = [(0, 255, 0), (255, 100, 0), (255, 0, 0)];
     const OFF_COLOR: (u8, u8, u8) = (0, 0, 0);
 
     let mut enabled = true;
