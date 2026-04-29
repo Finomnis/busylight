@@ -1,50 +1,14 @@
 on:
   pull_request:
-    branches: [main]
+    branches: [ main ]
   push:
-    branches: [main]
+    branches: [ main ]
   release:
-    types: [published]
+    types: [ published ]
 
 name: CI
 
 jobs:
-  firmware_zephyr:
-    name: Build Zephyr Firmware
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        board:
-          - busylight
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v6
-
-      - uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: libsdl2-dev
-          version: 1.0
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-
-      - name: Setup Zephyr project
-        uses: zephyrproject-rtos/action-zephyr-setup@v1
-        with:
-          app-path: busylight
-          base-path: firmware_zephyr
-          toolchains: arm-zephyr-eabi
-
-      - name: Build application
-        working-directory: firmware_zephyr
-        run: west build --sysbuild busylight/app -b ${{ matrix.board }} --domain app -- -DCMAKE_COMPILE_WARNING_AS_ERROR=y
-
-      - name: Build full image
-        working-directory: firmware_zephyr
-        run: west build --sysbuild busylight/app -b ${{ matrix.board }} -- -DCMAKE_COMPILE_WARNING_AS_ERROR=y
-
   firmware_rust:
     name: Build Rust Firmware
     runs-on: ubuntu-latest
@@ -56,5 +20,5 @@ jobs:
         run: rustup target add thumbv6m-none-eabi
 
       - name: Build
-        working-directory: firmware_rust
+        working-directory: software/firmware
         run: cargo build --release
