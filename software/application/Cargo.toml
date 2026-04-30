@@ -11,8 +11,6 @@ embassy-stm32 = { version = "0.6.0", features = [
     "defmt",
     "time-driver-any",
     "stm32u073cc",
-    "memory-x",
-    "unstable-pac",
     "exti",
     "chrono",
 ] }
