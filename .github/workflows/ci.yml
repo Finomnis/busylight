@@ -32,7 +32,8 @@ jobs:
           - ""
           - defmt
           - verify
-          - defmt,verify
+          # Does not fit in the bootloader partition
+          # - defmt,verify
       fail-fast: false
     steps:
       - name: Checkout sources
