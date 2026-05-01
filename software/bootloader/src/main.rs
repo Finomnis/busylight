@@ -95,12 +95,16 @@ fn main() -> ! {
         let control_buf = CONTROL_BUF.take();
 
         #[cfg(not(feature = "verify"))]
-        let mut state = new_state(updater, DfuAttributes::CAN_DOWNLOAD, ResetImmediate);
+        let mut state = new_state(
+            updater,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::MANIFESTATION_TOLERANT,
+            ResetImmediate,
+        );
 
         #[cfg(feature = "verify")]
         let mut state = new_state(
             updater,
-            DfuAttributes::CAN_DOWNLOAD,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::MANIFESTATION_TOLERANT,
             ResetImmediate,
             PUBLIC_SIGNING_KEY,
         );
