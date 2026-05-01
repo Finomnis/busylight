@@ -97,14 +97,14 @@ fn main() -> ! {
         #[cfg(not(feature = "verify"))]
         let mut state = new_state(
             updater,
-            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::MANIFESTATION_TOLERANT,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::WILL_DETACH,
             ResetImmediate,
         );
 
         #[cfg(feature = "verify")]
         let mut state = new_state(
             updater,
-            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::MANIFESTATION_TOLERANT,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::WILL_DETACH,
             ResetImmediate,
             PUBLIC_SIGNING_KEY,
         );
