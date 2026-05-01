@@ -41,5 +41,5 @@ jobs:
         run: rustup target add thumbv6m-none-eabi
 
       - name: Build
-        working-directory: software/bootloader
+        working-directory: firmware/bootloader
         run: cargo build --release --features=${{ matrix.features }}
