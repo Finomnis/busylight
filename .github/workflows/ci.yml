@@ -9,8 +9,8 @@ on:
 name: CI
 
 jobs:
-  firmware_rust:
-    name: Build Rust Firmware
+  firmware_application:
+    name: Build Application Firmware
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -20,5 +20,26 @@ jobs:
         run: rustup target add thumbv6m-none-eabi
 
       - name: Build
-        working-directory: software/firmware
+        working-directory: firmware/application
         run: cargo build --release
+
+  firmware_bootloader:
+    name: Build Bootloader Firmware
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features:
+          - ""
+          - defmt
+          - verify
+          - defmt,verify
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Install toolchains
+        run: rustup target add thumbv6m-none-eabi
+
+      - name: Build
+        working-directory: software/bootloader
+        run: cargo build --release --features=${{ matrix.features }}
