@@ -10,6 +10,7 @@ use cortex_m_rt::exception;
 use defmt_rtt as _;
 use embassy_boot_stm32::*;
 use embassy_stm32::flash::{BANK1_REGION, Flash, WRITE_SIZE};
+use embassy_stm32::gpio::{Input, Pull};
 use embassy_stm32::rcc::mux::Clk48sel;
 use embassy_stm32::usb::Driver;
 use embassy_stm32::{bind_interrupts, peripherals, usb};
@@ -69,13 +70,15 @@ fn main() -> ! {
         cortex_m::asm::nop();
     }
 
+    let button = Input::new(p.PA5, Pull::Up);
+
     let layout = Flash::new_blocking(p.FLASH).into_blocking_regions();
     let flash = Mutex::new(RefCell::new(layout.bank1_region));
 
     let config = BootLoaderConfig::from_linkerfile_blocking(&flash, &flash, &flash);
     let active_offset = config.active.offset();
     let bl = BootLoader::prepare::<_, _, _, 2048>(config);
-    if bl.state == State::DfuDetach {
+    if button.is_low() || bl.state == State::DfuDetach {
         let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
         let mut config = embassy_usb::Config::new(0xc0de, 0xcafe);
         config.manufacturer = Some("Finomnis");
