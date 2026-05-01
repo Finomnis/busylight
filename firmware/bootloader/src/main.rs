@@ -27,13 +27,9 @@ bind_interrupts!(struct Irqs {
 });
 
 // This is a randomly generated GUID to allow clients on Windows to find your device.
-//
-// N.B. update to a custom GUID for your own device!
 const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
 
 // This is a randomly generated example key.
-//
-// N.B. Please replace with your own!
 #[cfg(feature = "verify")]
 static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.short");
 
