@@ -80,7 +80,7 @@ fn main() -> ! {
     let bl = BootLoader::prepare::<_, _, _, 2048>(config);
     if button.is_low() || bl.state == State::DfuDetach {
         let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
-        let mut config = embassy_usb::Config::new(0xc0de, 0xcafe);
+        let mut config = embassy_usb::Config::new(0xc0de, 0xcafe); // TODO: Get a proper VID:PID once this project is open sourced
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight Bootloader");
         config.serial_number = None;
