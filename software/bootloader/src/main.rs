@@ -19,6 +19,7 @@ use embassy_usb_dfu::consts::DfuAttributes;
 use embassy_usb_dfu::{ResetImmediate, new_state, usb_dfu};
 #[cfg(feature = "defmt")]
 use panic_probe as _;
+use static_cell::ConstStaticCell;
 
 bind_interrupts!(struct Irqs {
     USB_DRD_FS => usb::InterruptHandler<peripherals::USB>;
@@ -34,6 +35,11 @@ const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b
 // N.B. Please replace with your own!
 #[cfg(feature = "verify")]
 static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.short");
+
+static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
+static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
+static MSOS_DESCRIPTOR: ConstStaticCell<[u8; 1024]> = ConstStaticCell::new([0u8; 1024]);
+static CONTROL_BUF: ConstStaticCell<[u8; 4096]> = ConstStaticCell::new([0u8; 4096]);
 
 #[entry]
 fn main() -> ! {
@@ -69,7 +75,7 @@ fn main() -> ! {
     let config = BootLoaderConfig::from_linkerfile_blocking(&flash, &flash, &flash);
     let active_offset = config.active.offset();
     let bl = BootLoader::prepare::<_, _, _, 2048>(config);
-    if true || bl.state == State::DfuDetach {
+    if bl.state == State::DfuDetach {
         let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
         let mut config = embassy_usb::Config::new(0xc0de, 0xcafe);
         config.manufacturer = Some("Finomnis");
@@ -80,9 +86,10 @@ fn main() -> ! {
         let mut buffer = AlignedBuffer([0; WRITE_SIZE]);
         let updater = BlockingFirmwareUpdater::new(fw_config, &mut buffer.0[..]);
 
-        let mut config_descriptor = [0; 256];
-        let mut bos_descriptor = [0; 256];
-        let mut control_buf = [0; 4096];
+        let config_descriptor = CONFIG_DESCRIPTOR.take();
+        let bos_descriptor = BOS_DESCRIPTOR.take();
+        let msos_descriptor = MSOS_DESCRIPTOR.take();
+        let control_buf = CONTROL_BUF.take();
 
         #[cfg(not(feature = "verify"))]
         let mut state = new_state(updater, DfuAttributes::CAN_DOWNLOAD, ResetImmediate);
@@ -98,10 +105,10 @@ fn main() -> ! {
         let mut builder = Builder::new(
             driver,
             config,
-            &mut config_descriptor,
-            &mut bos_descriptor,
-            &mut [],
-            &mut control_buf,
+            config_descriptor,
+            bos_descriptor,
+            msos_descriptor,
+            control_buf,
         );
 
         // We add MSOS headers so that the device automatically gets assigned the WinUSB driver on Windows.
