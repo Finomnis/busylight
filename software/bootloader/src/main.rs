@@ -3,18 +3,22 @@
 
 use core::cell::RefCell;
 
-use cortex_m_rt::{entry, exception};
+use cortex_m_rt::entry;
+#[cfg(not(feature = "defmt"))]
+use cortex_m_rt::exception;
 #[cfg(feature = "defmt")]
 use defmt_rtt as _;
 use embassy_boot_stm32::*;
-use embassy_stm32::flash::{Flash, BANK1_REGION, WRITE_SIZE};
+use embassy_stm32::flash::{BANK1_REGION, Flash, WRITE_SIZE};
 use embassy_stm32::rcc::mux::Clk48sel;
 use embassy_stm32::usb::Driver;
 use embassy_stm32::{bind_interrupts, peripherals, usb};
 use embassy_sync::blocking_mutex::Mutex;
-use embassy_usb::{msos, Builder};
+use embassy_usb::{Builder, msos};
 use embassy_usb_dfu::consts::DfuAttributes;
-use embassy_usb_dfu::{new_state, usb_dfu, ResetImmediate};
+use embassy_usb_dfu::{ResetImmediate, new_state, usb_dfu};
+#[cfg(feature = "defmt")]
+use panic_probe as _;
 
 bind_interrupts!(struct Irqs {
     USB_DRD_FS => usb::InterruptHandler<peripherals::USB>;
@@ -23,7 +27,7 @@ bind_interrupts!(struct Irqs {
 // This is a randomly generated GUID to allow clients on Windows to find your device.
 //
 // N.B. update to a custom GUID for your own device!
-const DEVICE_INTERFACE_GUIDS: &[&str] = &["{EAA9A5DC-30BA-44BC-9232-606CDC875321}"];
+const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
 
 // This is a randomly generated example key.
 //
@@ -65,12 +69,12 @@ fn main() -> ! {
     let config = BootLoaderConfig::from_linkerfile_blocking(&flash, &flash, &flash);
     let active_offset = config.active.offset();
     let bl = BootLoader::prepare::<_, _, _, 2048>(config);
-    if bl.state == State::DfuDetach {
+    if true || bl.state == State::DfuDetach {
         let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
         let mut config = embassy_usb::Config::new(0xc0de, 0xcafe);
-        config.manufacturer = Some("Embassy");
-        config.product = Some("USB-DFU Bootloader example");
-        config.serial_number = Some("1235678");
+        config.manufacturer = Some("Finomnis");
+        config.product = Some("BusyLight Bootloader");
+        config.serial_number = None;
 
         let fw_config = FirmwareUpdaterConfig::from_linkerfile_blocking(&flash, &flash);
         let mut buffer = AlignedBuffer([0; WRITE_SIZE]);
@@ -130,12 +134,14 @@ fn main() -> ! {
     unsafe { bl.load(BANK1_REGION.base() + active_offset) }
 }
 
+#[cfg(not(feature = "defmt"))]
 #[unsafe(no_mangle)]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".HardFault.user"))]
 unsafe extern "C" fn HardFault() {
     cortex_m::peripheral::SCB::sys_reset();
 }
 
+#[cfg(not(feature = "defmt"))]
 #[exception]
 unsafe fn DefaultHandler(_: i16) -> ! {
     const SCB_ICSR: *const u32 = 0xE000_ED04 as *const u32;
@@ -144,7 +150,14 @@ unsafe fn DefaultHandler(_: i16) -> ! {
     panic!("DefaultHandler #{:?}", irqn);
 }
 
+#[cfg(not(feature = "defmt"))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     cortex_m::asm::udf();
+}
+
+#[cfg(feature = "defmt")]
+#[defmt::panic_handler]
+fn panic() -> ! {
+    panic_probe::hard_fault();
 }
