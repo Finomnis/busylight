@@ -1,0 +1,173 @@
+#![no_std]
+#![no_main]
+
+use core::cell::RefCell;
+
+use cortex_m_rt::entry;
+#[cfg(not(feature = "defmt"))]
+use cortex_m_rt::exception;
+#[cfg(feature = "defmt")]
+use defmt_rtt as _;
+use embassy_boot_stm32::*;
+use embassy_stm32::flash::{BANK1_REGION, Flash, WRITE_SIZE};
+use embassy_stm32::gpio::{Input, Pull};
+use embassy_stm32::rcc::mux::Clk48sel;
+use embassy_stm32::usb::Driver;
+use embassy_stm32::{bind_interrupts, peripherals, usb};
+use embassy_sync::blocking_mutex::Mutex;
+use embassy_usb::{Builder, msos};
+use embassy_usb_dfu::consts::DfuAttributes;
+use embassy_usb_dfu::{ResetImmediate, new_state, usb_dfu};
+#[cfg(feature = "defmt")]
+use panic_probe as _;
+use static_cell::ConstStaticCell;
+
+bind_interrupts!(struct Irqs {
+    USB_DRD_FS => usb::InterruptHandler<peripherals::USB>;
+});
+
+// This is a randomly generated GUID to allow clients on Windows to find your device.
+const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
+
+// This is a randomly generated example key.
+#[cfg(feature = "verify")]
+static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.short");
+
+static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
+static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
+static MSOS_DESCRIPTOR: ConstStaticCell<[u8; 1024]> = ConstStaticCell::new([0u8; 1024]);
+static CONTROL_BUF: ConstStaticCell<[u8; 4096]> = ConstStaticCell::new([0u8; 4096]);
+
+#[entry]
+fn main() -> ! {
+    let mut config = embassy_stm32::Config::default();
+    {
+        use embassy_stm32::rcc::*;
+        config.rcc.hsi = true;
+        config.rcc.pll = Some(Pll {
+            source: PllSource::HSI, // 16 MHz
+            prediv: PllPreDiv::DIV1,
+            mul: PllMul::MUL6, // 16 * 6 = 96 MHz
+            divp: None,
+            divq: None,
+            divr: Some(PllRDiv::DIV2), // 96 / 2 = 48 MHz
+        });
+        config.rcc.sys = Sysclk::PLL1_R;
+        config.rcc.hsi48 = Some(Hsi48Config {
+            sync_from_usb: true,
+        });
+        config.rcc.mux.clk48sel = Clk48sel::HSI48;
+    }
+    let p = embassy_stm32::init(config);
+
+    // Prevent a hard fault when accessing flash 'too early' after boot.
+    #[cfg(feature = "defmt")]
+    for _ in 0..10000000 {
+        cortex_m::asm::nop();
+    }
+
+    let button = Input::new(p.PA5, Pull::Up);
+
+    let layout = Flash::new_blocking(p.FLASH).into_blocking_regions();
+    let flash = Mutex::new(RefCell::new(layout.bank1_region));
+
+    let config = BootLoaderConfig::from_linkerfile_blocking(&flash, &flash, &flash);
+    let active_offset = config.active.offset();
+    let bl = BootLoader::prepare::<_, _, _, 2048>(config);
+    if button.is_low() || bl.state == State::DfuDetach {
+        let driver = Driver::new(p.USB, Irqs, p.PA12, p.PA11);
+        let mut config = embassy_usb::Config::new(0xc0de, 0xcafe); // TODO: Get a proper VID:PID once this project is open sourced
+        config.manufacturer = Some("Finomnis");
+        config.product = Some("BusyLight Bootloader");
+        config.serial_number = None;
+
+        let fw_config = FirmwareUpdaterConfig::from_linkerfile_blocking(&flash, &flash);
+        let mut buffer = AlignedBuffer([0; WRITE_SIZE]);
+        let updater = BlockingFirmwareUpdater::new(fw_config, &mut buffer.0[..]);
+
+        let config_descriptor = CONFIG_DESCRIPTOR.take();
+        let bos_descriptor = BOS_DESCRIPTOR.take();
+        let msos_descriptor = MSOS_DESCRIPTOR.take();
+        let control_buf = CONTROL_BUF.take();
+
+        #[cfg(not(feature = "verify"))]
+        let mut state = new_state(
+            updater,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::WILL_DETACH,
+            ResetImmediate,
+        );
+
+        #[cfg(feature = "verify")]
+        let mut state = new_state(
+            updater,
+            DfuAttributes::CAN_DOWNLOAD | DfuAttributes::WILL_DETACH,
+            ResetImmediate,
+            PUBLIC_SIGNING_KEY,
+        );
+
+        let mut builder = Builder::new(
+            driver,
+            config,
+            config_descriptor,
+            bos_descriptor,
+            msos_descriptor,
+            control_buf,
+        );
+
+        // We add MSOS headers so that the device automatically gets assigned the WinUSB driver on Windows.
+        // Otherwise users need to do this manually using a tool like Zadig.
+        //
+        // It seems these always need to be at added at the device level for this to work and for
+        // composite devices they also need to be added on the function level (as shown later).
+        //
+        builder.msos_descriptor(msos::windows_version::WIN8_1, 2);
+        builder.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
+        builder.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
+            "DeviceInterfaceGUIDs",
+            msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
+        ));
+
+        usb_dfu::<_, _, _, _, 4096>(&mut builder, &mut state, |func| {
+            // You likely don't have to add these function level headers if your USB device is not composite
+            // (i.e. if your device does not expose another interface in addition to DFU)
+            func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
+            func.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
+                "DeviceInterfaceGUIDs",
+                msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
+            ));
+        });
+
+        let mut dev = builder.build();
+        embassy_futures::block_on(dev.run());
+    }
+
+    unsafe { bl.load(BANK1_REGION.base() + active_offset) }
+}
+
+#[cfg(not(feature = "defmt"))]
+#[unsafe(no_mangle)]
+#[cfg_attr(target_os = "none", unsafe(link_section = ".HardFault.user"))]
+unsafe extern "C" fn HardFault() {
+    cortex_m::peripheral::SCB::sys_reset();
+}
+
+#[cfg(not(feature = "defmt"))]
+#[exception]
+unsafe fn DefaultHandler(_: i16) -> ! {
+    const SCB_ICSR: *const u32 = 0xE000_ED04 as *const u32;
+    let irqn = unsafe { core::ptr::read_volatile(SCB_ICSR) } as u8 as i16 - 16;
+
+    panic!("DefaultHandler #{:?}", irqn);
+}
+
+#[cfg(not(feature = "defmt"))]
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    cortex_m::asm::udf();
+}
+
+#[cfg(feature = "defmt")]
+#[defmt::panic_handler]
+fn panic() -> ! {
+    panic_probe::hard_fault();
+}

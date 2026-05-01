@@ -18,7 +18,7 @@ bind_interrupts!(struct Irqs {
 });
 
 fn bit(val: u8, pos: u8) -> u8 {
-    return (val >> pos) & 1;
+    (val >> pos) & 1
 }
 
 const NUM_LEDS: usize = 5;
@@ -29,7 +29,7 @@ async fn set_led(mut spi: impl embedded_hal_async::spi::SpiBus<u8>, color: (u8, 
     for led_id in 0..NUM_LEDS {
         for (color_pos, &color_val) in [color.1, color.0, color.2].iter().enumerate() {
             let data_start = led_id * 12 + color_pos * 4 + 1;
-            data[data_start + 0] = 0x88 + 0x60 * bit(color_val, 7) + 0x06 * bit(color_val, 6);
+            data[data_start] = 0x88 + 0x60 * bit(color_val, 7) + 0x06 * bit(color_val, 6);
             data[data_start + 1] = 0x88 + 0x60 * bit(color_val, 5) + 0x06 * bit(color_val, 4);
             data[data_start + 2] = 0x88 + 0x60 * bit(color_val, 3) + 0x06 * bit(color_val, 2);
             data[data_start + 3] = 0x88 + 0x60 * bit(color_val, 1) + 0x06 * bit(color_val, 0);
@@ -69,8 +69,10 @@ async fn main(_spawner: Spawner) {
 
     let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
 
-    let mut button_config = ButtonConfig::default();
-    button_config.double_click = core::time::Duration::ZERO.try_into().unwrap();
+    let button_config = ButtonConfig {
+        double_click: core::time::Duration::ZERO.try_into().unwrap(),
+        ..Default::default()
+    };
 
     let mut button = Button::new(button, button_config);
 

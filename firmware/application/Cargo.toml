@@ -11,8 +11,6 @@ embassy-stm32 = { version = "0.6.0", features = [
     "defmt",
     "time-driver-any",
     "stm32u073cc",
-    "memory-x",
-    "unstable-pac",
     "exti",
     "chrono",
 ] }
@@ -46,8 +44,3 @@ async-button = "0.2.0"
 
 [profile.release]
 debug = 2
-
-[package.metadata.embassy]
-build = [
-    { target = "thumbv6m-none-eabi", artifact-dir = "out/examples/stm32u0" },
-]
