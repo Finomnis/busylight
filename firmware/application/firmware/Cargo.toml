@@ -1,0 +1,57 @@
+[package]
+name = "busylight"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+
+[lib]
+harness = false
+
+
+[[bin]]
+name = "busylight"
+path = "src/bin/busylight.rs"
+test = false
+
+
+[dependencies]
+neopixel-spi-encoder = { path = "../crates/neopixel-spi-encoder" }
+
+embassy-stm32 = { version = "0.6.0", features = [
+    "defmt",
+    "time-driver-any",
+    "stm32u073cc",
+    "exti",
+    "chrono",
+] }
+embassy-sync = { version = "0.8.0", features = ["defmt"] }
+embassy-executor = { version = "0.10.0", features = [
+    "platform-cortex-m",
+    "executor-thread",
+    "defmt",
+] }
+embassy-time = { version = "0.5.1", features = [
+    "defmt",
+    "defmt-timestamp-uptime",
+    "tick-hz-32_768",
+] }
+embassy-usb = { version = "0.6.0", default-features = false, features = [
+    "defmt",
+] }
+embassy-futures = { version = "0.1.2" }
+
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
+
+cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.0"
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+
+micromath = "2.0.0"
+chrono = { version = "0.4.38", default-features = false }
+embedded-hal-async = "1.0.0"
+async-button = "0.2.0"
