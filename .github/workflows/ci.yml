@@ -19,12 +19,18 @@ jobs:
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
 
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install dependencies
+        run: cargo binstall flip-link
+
       - name: Build
         working-directory: firmware/application/firmware
         run: cargo build --release
 
   test_firmware_application:
-    name: Build Application Firmware
+    name: Run Application Firmware Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -33,7 +39,7 @@ jobs:
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
 
-      - name: Build
+      - name: Test
         working-directory: firmware/application
         run: cargo test --workspace --exclude busylight
 
@@ -55,6 +61,12 @@ jobs:
 
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
+
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install dependencies
+        run: cargo binstall flip-link
 
       - name: Build
         working-directory: firmware/bootloader
