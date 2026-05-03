@@ -9,7 +9,7 @@ on:
 name: CI
 
 jobs:
-  firmware_application:
+  build_firmware_application:
     name: Build Application Firmware
     runs-on: ubuntu-latest
     steps:
@@ -19,11 +19,31 @@ jobs:
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
 
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install dependencies
+        run: cargo binstall -y flip-link
+
       - name: Build
         working-directory: firmware/application
         run: cargo build --release
 
-  firmware_bootloader:
+  test_firmware_application:
+    name: Run Application Firmware Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Install toolchains
+        run: rustup target add thumbv6m-none-eabi
+
+      - name: Test
+        working-directory: firmware/application
+        run: cargo test-host
+
+  build_firmware_bootloader:
     name: Build Bootloader Firmware
     runs-on: ubuntu-latest
     strategy:
@@ -41,6 +61,12 @@ jobs:
 
       - name: Install toolchains
         run: rustup target add thumbv6m-none-eabi
+
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install dependencies
+        run: cargo binstall -y flip-link
 
       - name: Build
         working-directory: firmware/bootloader

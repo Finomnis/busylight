@@ -1,3 +1,0 @@
-- [ ] Rewrite as RTIC
-- [ ] log + bbqueue + uart
-- [ ] USB DFU + HID for LED color
