@@ -9,7 +9,21 @@ on:
 name: CI
 
 jobs:
-  firmware_application:
+  build_firmware_application:
+    name: Build Application Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Install toolchains
+        run: rustup target add thumbv6m-none-eabi
+
+      - name: Build
+        working-directory: firmware/application/firmware
+        run: cargo build --release
+
+  test_firmware_application:
     name: Build Application Firmware
     runs-on: ubuntu-latest
     steps:
@@ -21,9 +35,9 @@ jobs:
 
       - name: Build
         working-directory: firmware/application
-        run: cargo build --release
+        run: cargo test --workspace --exclude busylight
 
-  firmware_bootloader:
+  build_firmware_bootloader:
     name: Build Bootloader Firmware
     runs-on: ubuntu-latest
     strategy:
