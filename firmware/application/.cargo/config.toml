@@ -23,3 +23,9 @@ DEFMT_LOG = "info"
 
 [alias]
 program = "flash --chip stm32u073cc"
+test-host = [
+    "test",
+    "--workspace",
+    "--exclude=busylight",
+    "--target=host-tuple",
+]

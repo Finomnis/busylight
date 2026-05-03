@@ -8,10 +8,6 @@ repository.workspace = true
 publish.workspace = true
 
 
-[lib]
-harness = false
-
-
 [[bin]]
 name = "busylight"
 path = "src/bin/busylight.rs"

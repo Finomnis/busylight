@@ -26,7 +26,7 @@ jobs:
         run: cargo binstall flip-link
 
       - name: Build
-        working-directory: firmware/application/firmware
+        working-directory: firmware/application
         run: cargo build --release
 
   test_firmware_application:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Test
         working-directory: firmware/application
-        run: cargo test --workspace --exclude busylight
+        run: cargo test-host
 
   build_firmware_bootloader:
     name: Build Bootloader Firmware
