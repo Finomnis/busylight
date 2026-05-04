@@ -40,7 +40,7 @@ mod app {
     #[local]
     struct Local {
         spi: Spi<'static, Async, spi::mode::Master>,
-        button: Button<ExtiInput<'static, Async>>,
+        button: Button<ExtiInput<'static, Async>, Mono>,
     }
 
     #[init]
@@ -68,7 +68,7 @@ mod app {
 
         let p = embassy_stm32::init(config);
 
-        let tim3_hz = embassy_stm32::peripherals::TIM3::frequency();
+        let tim3_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM3>().0;
         Mono::start(tim3_hz);
 
         let mut spi_config = spi::Config::default();
@@ -80,7 +80,7 @@ mod app {
         let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
 
         let button_config = ButtonConfig {
-            double_click: core::time::Duration::ZERO.try_into().unwrap(),
+            double_click: 0.millis(),
             ..Default::default()
         };
 

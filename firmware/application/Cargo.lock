@@ -38,7 +38,7 @@ dependencies = [
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "fugit",
- "rtic-time 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rtic-time 2.0.1",
 ]
 
 [[package]]
@@ -121,6 +121,7 @@ dependencies = [
  "micromath",
  "neopixel-spi-encoder",
  "panic-probe",
+ "portable-atomic",
  "rtic",
  "rtic-monotonics 2.1.0",
  "rtic-sync",
@@ -984,7 +985,7 @@ dependencies = [
  "portable-atomic",
  "proc-macro2",
  "quote",
- "rtic-time 2.0.1 (git+https://github.com/Finomnis/rtic?branch=stm32-metapac-features)",
+ "rtic-time 2.0.1",
  "stm32-metapac",
 ]
 
@@ -1011,20 +1012,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b232e7aebc045cfea81cdd164bc2727a10aca9a4568d406d0a5661cdfd0f19"
 dependencies = [
  "critical-section",
- "futures-util",
- "rtic-common 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "rtic-time"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61485474f5a23247ae1d4875f2bfe860be9b3030dbf87c232e50799e021429a1"
-dependencies = [
- "critical-section",
- "embedded-hal 1.0.0",
- "embedded-hal-async",
- "fugit",
  "futures-util",
  "rtic-common 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

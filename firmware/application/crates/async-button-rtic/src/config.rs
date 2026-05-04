@@ -1,5 +1,3 @@
-use fugit::ExtU32;
-
 /// [`Button`](super::Button) configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -35,10 +33,12 @@ impl<Mono: rtic_time::Monotonic> ButtonConfig<Mono> {
 impl<
     const NOM: u32,
     const DENOM: u32,
-    Mono: rtic_time::Monotonic<Duration = fugit::Duration<u32, NOM, DENOM>>,
+    Mono: rtic_time::Monotonic<Duration = fugit::Duration<u64, NOM, DENOM>>,
 > Default for ButtonConfig<Mono>
 {
     fn default() -> Self {
+        use fugit::ExtU64;
+
         Self {
             debounce: 10.millis(),
             double_click: 350.millis(),

@@ -37,6 +37,7 @@ rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic",
     "stm32u073cc",
     "stm32_tim3",
 ] }
+portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
 
 # HAL drivers
 embassy-stm32 = { version = "0.6.0", features = [
