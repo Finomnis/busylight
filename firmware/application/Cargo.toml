@@ -1,6 +1,10 @@
 [workspace]
 resolver = "3"
-members = ["crates/neopixel-spi-encoder", "firmware"]
+members = [
+    "crates/async-button-rtic",
+    "crates/neopixel-spi-encoder",
+    "firmware",
+]
 
 [workspace.package]
 edition = "2024"
