@@ -22,31 +22,25 @@ async-button-rtic.workspace = true
 # Base Cortex-M dependencies
 cortex-m = { workspace = true, features = ["critical-section-single-core"] }
 cortex-m-rt.workspace = true
+critical-section.workspace = true
 
 # Logging
-defmt.workspace = true
-defmt-rtt.workspace = true
+log.workspace = true
+bbqueue.workspace = true
 
 # RTIC
 rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
 rtic-sync.workspace = true
-rtic-monotonics = { workspace = true, features = [
-    "stm32u073cc",
-    "stm32_tim2",
-    "defmt",
-] }
+rtic-monotonics = { workspace = true, features = ["stm32u073cc", "stm32_tim2"] }
 portable-atomic = { version = "1", features = ["critical-section"] }
 
 # HAL drivers
 embassy-stm32 = { workspace = true, features = [
-    "defmt",
     "unstable-pac",
     "stm32u073cc",
     "exti",
 ] }
-embassy-usb = { workspace = true, default-features = false, features = [
-    "defmt",
-] }
+embassy-usb = { workspace = true, default-features = false, features = [] }
 
 # HAL abstraction definitions
 embedded-hal.workspace = true

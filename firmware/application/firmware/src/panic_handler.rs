@@ -28,8 +28,6 @@ impl PanicUart {
         let mut config = Config::default();
         config.baudrate = 115_200;
 
-        // Adjust these to your board:
-        //   USART1 + PA9 is a common USART1_TX mapping, but not universal.
         let tx = UartTx::new_blocking(
             unsafe { peripherals::USART2::steal() },
             unsafe { peripherals::PA2::steal() },
