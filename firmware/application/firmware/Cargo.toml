@@ -10,7 +10,7 @@ publish.workspace = true
 
 [[bin]]
 name = "busylight"
-path = "src/bin/busylight.rs"
+path = "src/main.rs"
 test = false
 
 
@@ -23,9 +23,6 @@ async-button-rtic.workspace = true
 cortex-m = { workspace = true, features = ["critical-section-single-core"] }
 cortex-m-rt.workspace = true
 
-# Panic behavior
-panic-probe = { workspace = true, features = ["print-defmt"] }
-
 # Logging
 defmt.workspace = true
 defmt-rtt.workspace = true
@@ -35,10 +32,10 @@ rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
 rtic-sync.workspace = true
 rtic-monotonics = { workspace = true, features = [
     "stm32u073cc",
-    "stm32_tim3",
+    "stm32_tim2",
     "defmt",
 ] }
-portable-atomic = { version = "1", features = ["unsafe-assume-single-core"] }
+portable-atomic = { version = "1", features = ["critical-section"] }
 
 # HAL drivers
 embassy-stm32 = { workspace = true, features = [

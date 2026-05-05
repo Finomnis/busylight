@@ -1,8 +1,11 @@
 #![no_std]
 #![no_main]
 
+mod panic_handler;
+
 use async_button_rtic::{Button, ButtonConfig, ButtonEvent};
 use defmt::info;
+use defmt_rtt as _;
 use embassy_stm32::{
     Config, bind_interrupts, dma,
     exti::{self, ExtiInput},
@@ -15,7 +18,6 @@ use embassy_stm32::{
     spi::Spi,
     time::Hertz,
 };
-use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
     DMA1_CH4_7_DMA2_CH1_5_DMAMUX_OVR => dma::InterruptHandler<peripherals::DMA1_CH5>;
@@ -23,7 +25,7 @@ bind_interrupts!(struct Irqs {
 });
 
 use rtic_monotonics::stm32::prelude::*;
-stm32_tim3_monotonic!(Mono, 1_000_000);
+stm32_tim2_monotonic!(Mono, 1_000_000);
 
 #[rtic::app(
     device = ::embassy_stm32::pac,
@@ -68,8 +70,8 @@ mod app {
 
         let p = embassy_stm32::init(config);
 
-        let tim3_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM3>().0;
-        Mono::start(tim3_hz);
+        let tim2_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM2>().0;
+        Mono::start(tim2_hz);
 
         let mut spi_config = spi::Config::default();
         spi_config.frequency = Hertz(3_000_000);
