@@ -140,7 +140,7 @@ mod app {
 
         let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
-        config.product = Some("BusyLight Bootloader");
+        config.product = Some("BusyLight");
 
         let firmware_updater_config = FirmwareUpdaterConfig::from_linkerfile_blocking(flash, flash);
         let magic = MAGIC.take();
@@ -201,6 +201,7 @@ mod app {
 
         led_control_loop::spawn().unwrap();
         log_handler::spawn().unwrap();
+        usb_handler::spawn().unwrap();
 
         (
             Shared {},

@@ -9,14 +9,14 @@ use cortex_m_rt::exception;
 #[cfg(feature = "defmt")]
 use defmt_rtt as _;
 use embassy_boot_stm32::*;
-use embassy_stm32::flash::{Flash, BANK1_REGION, WRITE_SIZE};
+use embassy_stm32::flash::{BANK1_REGION, Flash, WRITE_SIZE};
 use embassy_stm32::gpio::{Input, Pull};
 use embassy_stm32::rcc::mux::Clk48sel;
 use embassy_stm32::{bind_interrupts, peripherals, usb};
 use embassy_sync::blocking_mutex::Mutex;
-use embassy_usb::{msos, Builder};
+use embassy_usb::{Builder, msos};
 use embassy_usb_dfu::consts::DfuAttributes;
-use embassy_usb_dfu::{new_state, usb_dfu, ResetImmediate};
+use embassy_usb_dfu::{ResetImmediate, new_state, usb_dfu};
 #[cfg(feature = "defmt")]
 use panic_probe as _;
 use static_cell::ConstStaticCell;
@@ -126,7 +126,7 @@ fn main() -> ! {
             msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
         ));
 
-        usb_dfu::<_, _, _, _, 4096>(&mut builder, &mut state, |func| {
+        usb_dfu::<_, _, _, _, 2048>(&mut builder, &mut state, |func| {
             // You likely don't have to add these function level headers if your USB device is not composite
             // (i.e. if your device does not expose another interface in addition to DFU)
             func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));

@@ -1022,7 +1022,7 @@ dependencies = [
 [[package]]
 name = "rtic-common"
 version = "1.1.0"
-source = "git+https://github.com/Finomnis/rtic?branch=stm32u0#04f752abd3a61f9bf0f5046deb058798abd80c7e"
+source = "git+https://github.com/Finomnis/rtic?branch=fix_monotonics_stm32_timer2#5528b5b5ab6a22661712c211776ca98d78400b42"
 dependencies = [
  "critical-section",
  "portable-atomic",
@@ -1063,7 +1063,7 @@ dependencies = [
 [[package]]
 name = "rtic-monotonics"
 version = "2.1.0"
-source = "git+https://github.com/Finomnis/rtic?branch=stm32u0#04f752abd3a61f9bf0f5046deb058798abd80c7e"
+source = "git+https://github.com/Finomnis/rtic?branch=fix_monotonics_stm32_timer2#5528b5b5ab6a22661712c211776ca98d78400b42"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -1089,14 +1089,14 @@ dependencies = [
 [[package]]
 name = "rtic-time"
 version = "2.0.1"
-source = "git+https://github.com/Finomnis/rtic?branch=stm32u0#04f752abd3a61f9bf0f5046deb058798abd80c7e"
+source = "git+https://github.com/Finomnis/rtic?branch=fix_monotonics_stm32_timer2#5528b5b5ab6a22661712c211776ca98d78400b42"
 dependencies = [
  "critical-section",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "fugit",
  "futures-util",
- "rtic-common 1.1.0 (git+https://github.com/Finomnis/rtic?branch=stm32u0)",
+ "rtic-common 1.1.0 (git+https://github.com/Finomnis/rtic?branch=fix_monotonics_stm32_timer2)",
 ]
 
 [[package]]

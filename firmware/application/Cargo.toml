@@ -39,8 +39,8 @@ bbqueue = "0.7.0"
 
 # RTIC
 rtic = "2.1.0"
-rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "stm32u0" }
-rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "stm32u0" }
+rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "fix_monotonics_stm32_timer2" }
+rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "fix_monotonics_stm32_timer2" }
 
 # HAL drivers
 embassy-stm32 = "0.6.0"
