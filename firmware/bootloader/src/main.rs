@@ -30,7 +30,7 @@ const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b
 
 // This is a randomly generated example key.
 #[cfg(feature = "verify")]
-static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.short");
+static PUBLIC_SIGNING_KEY: &[u8; 32] = include_bytes!("../secrets/key.pub.raw");
 
 static CONFIG_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
 static BOS_DESCRIPTOR: ConstStaticCell<[u8; 256]> = ConstStaticCell::new([0u8; 256]);
