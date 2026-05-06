@@ -21,7 +21,7 @@
                     "programBinary": "./target/thumbv6m-none-eabi/debug/busylight"
                 }
             ]
-        }
+        },
         {
             "name": "probe-rs Attach",
             "type": "probe-rs-debug",

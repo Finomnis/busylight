@@ -151,7 +151,7 @@ mod app {
         let dfu_handler = DfuHandler { firmware_state };
         let dfu_state = DfuState::new(
             dfu_handler,
-            DfuAttributes::CAN_DOWNLOAD,
+            DfuAttributes::WILL_DETACH,
             embassy_time::Duration::from_millis(2500),
         );
         let dfu_state = cx.local.dfu_state.insert(dfu_state);
