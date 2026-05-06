@@ -46,7 +46,7 @@ jobs:
         working-directory: firmware/application
         run: cargo objcopy --release -- -O ihex target/busylight.hex
 
-      - name: Sign firmware bin file
+      - name: Sign firmware file
         working-directory: firmware/application
         run: |
           export WORKSPACE_GIT_DESCRIBE=`git describe --tags --always --dirty`
@@ -57,10 +57,10 @@ jobs:
           dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
           cp target/busylight.hex target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
 
-      - name: Upload firmware bin file as artifact
+      - name: Upload firmware dfu file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/application/target/busylight.*.bin
+          path: firmware/application/target/busylight.*.dfu
           if-no-files-found: error
           archive: false
 
