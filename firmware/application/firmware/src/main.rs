@@ -1,8 +1,10 @@
 #![no_std]
 #![no_main]
 
+mod panic_handler;
+mod uart_logger;
+
 use async_button_rtic::{Button, ButtonConfig, ButtonEvent};
-use defmt::info;
 use embassy_stm32::{
     Config, bind_interrupts, dma,
     exti::{self, ExtiInput},
@@ -15,22 +17,26 @@ use embassy_stm32::{
     spi::Spi,
     time::Hertz,
 };
-use {defmt_rtt as _, panic_probe as _};
+use log::info;
 
 bind_interrupts!(struct Irqs {
-    DMA1_CH4_7_DMA2_CH1_5_DMAMUX_OVR => dma::InterruptHandler<peripherals::DMA1_CH5>;
+    DMA1_CHANNEL2_3 =>
+        dma::InterruptHandler<peripherals::DMA1_CH2>,
+        dma::InterruptHandler<peripherals::DMA1_CH3>;
     EXTI4_15 => exti::InterruptHandler<interrupt::typelevel::EXTI4_15>;
 });
 
 use rtic_monotonics::stm32::prelude::*;
-stm32_tim3_monotonic!(Mono, 1_000_000);
+stm32_tim2_monotonic!(Mono, 1_000_000);
 
 #[rtic::app(
     device = ::embassy_stm32::pac,
     peripherals = false,
-    dispatchers = [TIM16] // free IRQs used by RTIC for async software tasks
+    dispatchers = [TIM3, TIM16] // free IRQs used by RTIC for async software tasks
 )]
 mod app {
+
+    use embassy_stm32::usart;
 
     use super::*;
 
@@ -41,12 +47,11 @@ mod app {
     struct Local {
         spi: Spi<'static, Async, spi::mode::Master>,
         button: Button<ExtiInput<'static, Async>, Mono>,
+        log_handler: uart_logger::UartLogHandler,
     }
 
     #[init]
     fn init(mut cx: init::Context) -> (Shared, Local) {
-        info!("init");
-
         let mut config = Config::default();
         {
             use embassy_stm32::rcc::*;
@@ -68,14 +73,20 @@ mod app {
 
         let p = embassy_stm32::init(config);
 
-        let tim3_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM3>().0;
-        Mono::start(tim3_hz);
+        let mut uart_config = usart::Config::default();
+        uart_config.baudrate = 115200;
+        let uart = usart::UartTx::new(p.USART2, p.PA2, p.DMA1_CH2, Irqs, uart_config).unwrap();
+        let log_handler = uart_logger::init(uart);
+        info!("init");
+
+        let tim2_hz = embassy_stm32::rcc::frequency::<embassy_stm32::peripherals::TIM2>().0;
+        Mono::start(tim2_hz);
 
         let mut spi_config = spi::Config::default();
         spi_config.frequency = Hertz(3_000_000);
         spi_config.mode = spi::MODE_1;
 
-        let spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH5, Irqs, spi_config);
+        let spi = Spi::new_txonly(p.SPI1, p.PA1, p.PA7, p.DMA1_CH3, Irqs, spi_config);
 
         let button = ExtiInput::new(p.PA5, p.EXTI5, Pull::Up, Irqs);
 
@@ -91,8 +102,16 @@ mod app {
         cx.core.SCB.set_sleeponexit();
 
         led_control_loop::spawn().unwrap();
+        log_handler::spawn().unwrap();
 
-        (Shared {}, Local { spi, button })
+        (
+            Shared {},
+            Local {
+                spi,
+                button,
+                log_handler,
+            },
+        )
     }
 
     #[idle]
@@ -106,7 +125,13 @@ mod app {
         }
     }
 
-    #[task(priority = 1, local = [spi, button])]
+    #[task(priority = 1, local = [log_handler])]
+    async fn log_handler(ctx: log_handler::Context) {
+        let log_handler = ctx.local.log_handler;
+        log_handler.run().await;
+    }
+
+    #[task(priority = 2, local = [spi, button])]
     async fn led_control_loop(ctx: led_control_loop::Context) {
         info!("led_control_loop");
 

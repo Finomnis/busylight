@@ -15,7 +15,7 @@ publish = false
 
 [profile.release]
 # Allows defmt to display log locations even in release
-debug = true
+# debug = true
 
 [workspace.dependencies]
 
@@ -26,6 +26,7 @@ async-button-rtic = { path = "./crates/async-button-rtic" }
 # Base Cortex-M dependencies
 cortex-m = "0.7.6"
 cortex-m-rt = "0.7.0"
+critical-section = "1.2.0"
 
 # Panic behavior
 panic-probe = "1.0.0"
@@ -33,6 +34,8 @@ panic-probe = "1.0.0"
 # Logging
 defmt = "1.0.1"
 defmt-rtt = "1.0.0"
+log = "0.4.29"
+bbqueue = "0.7.0"
 
 # RTIC
 rtic = "2.1.0"
