@@ -1,8 +1,8 @@
 # Busylight
 
-![Green](/.media/busylight_green.jpg)
-![Yellow](/.media/busylight_yellow.jpg)
-![Red](/.media/busylight_red.jpg)
+![Green](/.media/busylight_green_small.jpg)
+![Yellow](/.media/busylight_yellow_small.jpg)
+![Red](/.media/busylight_red_small.jpg)
 
 An indicator that shows coworkers if you are busy.
 
