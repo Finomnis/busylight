@@ -176,9 +176,20 @@ mod app {
 
         // We add MSOS headers so that the device automatically gets assigned the WinUSB driver on Windows.
         // Otherwise users need to do this manually using a tool like Zadig.
+        //
+        // It seems these always need to be at added at the device level for this to work and for
+        // composite devices they also need to be added on the function level (as shown later).
+        //
         builder.msos_descriptor(msos::windows_version::WIN8_1, 2);
+        builder.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
+        builder.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
+            "DeviceInterfaceGUIDs",
+            msos::PropertyData::RegMultiSz(DEVICE_INTERFACE_GUIDS),
+        ));
 
         usb_dfu(&mut builder, dfu_state, |func| {
+            // You likely don't have to add these function level headers if your USB device is not composite
+            // (i.e. if your device does not expose another interface in addition to DFU)
             func.msos_feature(msos::CompatibleIdFeatureDescriptor::new("WINUSB", ""));
             func.msos_feature(msos::RegistryPropertyFeatureDescriptor::new(
                 "DeviceInterfaceGUIDs",
