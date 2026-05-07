@@ -90,32 +90,52 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
 
 struct UsbEventHandler {
     queue: rtic_sync::channel::Sender<'static, LedEvent, 10>,
+    // Only activate after the PC was connected at least once
     was_already_connected: bool,
+    suspended: bool,
+    addressed: bool,
 }
 impl UsbEventHandler {
     pub fn new(queue: rtic_sync::channel::Sender<'static, LedEvent, 10>) -> Self {
         Self {
             queue,
             was_already_connected: false,
+            suspended: false,
+            addressed: false,
+        }
+    }
+
+    fn update_leds(&mut self) {
+        let should_be_on = self.addressed && !self.suspended;
+
+        if self.was_already_connected {
+            if should_be_on {
+                self.queue.try_send(LedEvent::On).unwrap();
+            } else {
+                self.queue.try_send(LedEvent::Off).unwrap();
+            }
+        }
+
+        if should_be_on {
+            self.was_already_connected = true;
         }
     }
 }
 impl embassy_usb::Handler for UsbEventHandler {
-    /// Called when the bus has entered or exited the suspend state.
     fn suspended(&mut self, suspended: bool) {
-        log::info!("USB suspend = {suspended:?}");
-        // Only control this after the PC was connected at least once
-        if self.was_already_connected {
-            if suspended {
-                self.queue.try_send(LedEvent::Off).unwrap();
-            } else {
-                self.queue.try_send(LedEvent::On).unwrap();
-            }
-        }
+        self.suspended = suspended;
+        self.update_leds();
+    }
 
-        if !suspended {
-            self.was_already_connected = true;
-        }
+    fn addressed(&mut self, _addr: u8) {
+        self.addressed = true;
+        self.update_leds();
+    }
+
+    fn reset(&mut self) {
+        self.suspended = false;
+        self.addressed = false;
+        self.update_leds();
     }
 }
 
