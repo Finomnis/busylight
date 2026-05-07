@@ -72,14 +72,14 @@ jobs:
       - name: Upload firmware dfu file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/application/target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu
+          path: firmware/application/target/busylight.${{env.WORKSPACE_GIT_DESCRIBE}}.dfu
           if-no-files-found: error
           archive: false
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/application/target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex
+          path: firmware/application/target/busylight.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
           if-no-files-found: error
           archive: false
 
@@ -130,6 +130,6 @@ jobs:
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
         with:
-          path: firmware/bootloader/target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+          path: firmware/bootloader/target/busylight.bootloader.${{env.WORKSPACE_GIT_DESCRIBE}}.hex
           if-no-files-found: error
           archive: false
