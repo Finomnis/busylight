@@ -145,6 +145,7 @@ mod app {
         let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight");
+        config.serial_number = Some(embassy_stm32::uid::uid_hex());
 
         let firmware_updater_config = FirmwareUpdaterConfig::from_linkerfile_blocking(flash, flash);
         let magic = MAGIC.take();

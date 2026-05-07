@@ -78,6 +78,7 @@ fn main() -> ! {
         let mut config = embassy_usb::Config::new(0x1209, 0xd9d0);
         config.manufacturer = Some("Finomnis");
         config.product = Some("BusyLight Bootloader");
+        config.serial_number = Some(embassy_stm32::uid::uid_hex());
 
         let fw_config = FirmwareUpdaterConfig::from_linkerfile_blocking(&flash, &flash);
         let mut buffer = AlignedBuffer([0; WRITE_SIZE]);
