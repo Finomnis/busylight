@@ -88,6 +88,65 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0xc0, // End collection
 ];
 
+struct UsbEventHandler {
+    queue: rtic_sync::channel::Sender<'static, LedEvent, 10>,
+    // Only activate after the PC was connected at least once
+    was_already_connected: bool,
+    suspended: bool,
+    addressed: bool,
+    was_on_previously: bool,
+}
+impl UsbEventHandler {
+    pub fn new(queue: rtic_sync::channel::Sender<'static, LedEvent, 10>) -> Self {
+        Self {
+            queue,
+            was_already_connected: false,
+            suspended: false,
+            addressed: false,
+            was_on_previously: false,
+        }
+    }
+
+    fn update_leds(&mut self) {
+        let should_be_on = self.addressed && !self.suspended;
+
+        let mut success = true;
+
+        if self.was_already_connected && (should_be_on != self.was_on_previously) {
+            success = if should_be_on {
+                self.queue.try_send(LedEvent::ExitSleep)
+            } else {
+                self.queue.try_send(LedEvent::EnterSleep)
+            }
+            .is_ok();
+        }
+
+        if should_be_on {
+            self.was_already_connected = true;
+        }
+        if success {
+            self.was_on_previously = should_be_on;
+        }
+    }
+}
+impl embassy_usb::Handler for UsbEventHandler {
+    fn suspended(&mut self, suspended: bool) {
+        self.suspended = suspended;
+        self.update_leds();
+    }
+
+    fn addressed(&mut self, _addr: u8) {
+        self.addressed = true;
+        self.update_leds();
+    }
+
+    fn reset(&mut self) {
+        self.suspended = false;
+        self.addressed = false;
+        self.update_leds();
+    }
+}
+
 #[rtic::app(
     device = ::embassy_stm32::pac,
     peripherals = false,
@@ -115,6 +174,7 @@ mod app {
         flash: Option<embassy_sync::blocking_mutex::NoopMutex<RefCell<BlockingFlash>>> = None,
         dfu_state: Option<DfuState<DfuHandler<'static, embassy_embedded_hal::flash::partition::BlockingPartition<'static, embassy_sync::blocking_mutex::raw::NoopRawMutex, BlockingFlash>>>> = None,
         hid_state: Option<hid::State<'static>> = None,
+        usb_event_handler: Option<UsbEventHandler> = None,
     ])]
     fn init(mut cx: init::Context) -> (Shared, Local) {
         let mut config = Config::default();
@@ -238,15 +298,21 @@ mod app {
             ));
         });
 
+        let (led_event_sender, led_event_receiver) = rtic_sync::make_channel!(LedEvent, 10);
+        let led_controller = LedController::new(spi, led_event_receiver);
+
+        let usb_event_handler = cx
+            .local
+            .usb_event_handler
+            .insert(UsbEventHandler::new(led_event_sender.clone()));
+
+        builder.handler(usb_event_handler);
+
         let usb_dev = builder.build();
 
         // Set the ARM SLEEPONEXIT bit to go to sleep after handling interrupts
         // See https://developer.arm.com/docs/100737/0100/power-management/sleep-mode/sleep-on-exit-bit
         cx.core.SCB.set_sleeponexit();
-
-        let (led_event_sender, led_event_receiver) = rtic_sync::make_channel!(LedEvent, 10);
-
-        let led_controller = LedController::new(spi, led_event_receiver);
 
         led_control_loop::spawn().unwrap();
         log_handler::spawn().unwrap();
