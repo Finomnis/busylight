@@ -1,10 +1,10 @@
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
   release:
-    types: [ published ]
+    types: [published]
 
 name: CI
 
@@ -12,6 +12,8 @@ jobs:
   build_firmware_application:
     name: Application Firmware
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -86,6 +88,8 @@ jobs:
   test_firmware_application:
     name: Firmware Tests
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -100,6 +104,8 @@ jobs:
   build_firmware_bootloader:
     name: Bootloader Firmware
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -137,6 +143,8 @@ jobs:
   build_software:
     name: Host software
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
