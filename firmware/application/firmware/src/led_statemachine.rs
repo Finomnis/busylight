@@ -2,9 +2,6 @@ use embassy_stm32::{
     mode::Async,
     spi::{self, Spi},
 };
-use rtic_monotonics::Monotonic;
-
-use crate::Mono;
 
 #[derive(Debug)]
 pub enum LedEvent {
@@ -35,12 +32,7 @@ impl LedController {
     }
 
     async fn set_led(&mut self, color: (u8, u8, u8)) {
-        log::info!(
-            "{} | {}: Color: {:?}",
-            Mono::now(),
-            embassy_time::Instant::now().as_millis(),
-            color
-        );
+        log::info!("Color: {:?}", color);
         let mut data = [0u8; neopixel_spi_encoder::buffer_size(NUM_LEDS)];
         let data = neopixel_spi_encoder::fill_with_color(&mut data, color);
         self.spi.write(data).await.unwrap();

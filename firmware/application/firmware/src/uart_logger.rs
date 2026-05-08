@@ -5,6 +5,9 @@ use embassy_stm32::{mode::Async, usart::UartTx};
 use git_version::git_version;
 use log::{Level, Metadata, Record};
 
+use crate::Mono;
+use rtic_monotonics::Monotonic;
+
 const LOG_QUEUE_SIZE: usize = 8192;
 
 type LogQueue =
@@ -62,7 +65,8 @@ impl log::Log for BBQueueLogger {
         if self.enabled(record.metadata()) {
             let _ = writeln!(
                 StreamWriter(&self.queue),
-                "{} - {}",
+                "{:>11.06}: {:>5} - {}",
+                Mono::now().duration_since_epoch().as_secs_f32(),
                 record.level(),
                 record.args()
             );

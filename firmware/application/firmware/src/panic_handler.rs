@@ -60,16 +60,15 @@ fn panic(info: &PanicInfo) -> ! {
     interrupt::disable();
 
     // Avoid recursive panic printing.
+    #[allow(clippy::collapsible_if)]
     if !PANICKING.swap(true, Ordering::Relaxed) {
         if let Some(mut uart) = unsafe { PanicUart::steal() } {
-            let _ = writeln!(uart, "");
+            let _ = writeln!(uart);
             let _ = writeln!(uart, "{}", info);
-            let _ = writeln!(uart, "");
+            let _ = writeln!(uart);
             uart.flush();
         }
     }
 
-    loop {
-        asm::udf();
-    }
+    asm::udf();
 }

@@ -28,7 +28,7 @@ log.workspace = true
 bbqueue.workspace = true
 
 # RTIC
-rtic = { workspace = true, features = ["thumbv6-backend", "rtic-monotonics"] }
+rtic = { workspace = true, features = ["thumbv6-backend"] }
 rtic-monotonics = { workspace = true, features = ["stm32u073cc", "stm32_tim2"] }
 rtic-sync.workspace = true
 futures = { workspace = true, features = ["async-await"] }
@@ -43,7 +43,7 @@ embassy-stm32 = { workspace = true, features = [
 ] }
 embassy-time = { workspace = true, features = [
     "generic-queue-8",
-    "tick-hz-32_768",
+    "tick-hz-32_000",
 ] }
 embassy-usb.workspace = true
 embassy-usb-dfu = { workspace = true, features = ["application", "cortex-m"] }

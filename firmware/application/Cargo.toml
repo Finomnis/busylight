@@ -38,10 +38,10 @@ log = "0.4.29"
 bbqueue = "0.7.0"
 
 # RTIC
-rtic = "2.1.0"
-rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "fix_monotonics_stm32_timer2" }
-rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "fix_monotonics_stm32_timer2" }
-rtic-sync = "1.4.0"
+rtic = { version = "2.2.0", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+rtic-time = { version = "2.0.1", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+rtic-monotonics = { version = "2.1.0", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
+rtic-sync = { version = "1.4.0", git = "https://github.com/Finomnis/rtic", branch = "fugit_0.4.0" }
 futures = { version = "0.3.32", default-features = false }
 
 # HAL drivers
@@ -59,7 +59,7 @@ embedded-hal-async = "1.0.0"
 embedded-storage = "0.3.1"
 
 # Other
-fugit = "0.3.9"
+fugit = "0.4.0"
 cfg-if = "1.0.0"
 static_cell = "2.1.1"
 git-version = "0.3.9"

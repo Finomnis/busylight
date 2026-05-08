@@ -31,8 +31,8 @@ impl<Mono: rtic_time::Monotonic> ButtonConfig<Mono> {
 }
 
 impl<
-    const NOM: u32,
-    const DENOM: u32,
+    const NOM: u64,
+    const DENOM: u64,
     Mono: rtic_time::Monotonic<Duration = fugit::Duration<u64, NOM, DENOM>>,
 > Default for ButtonConfig<Mono>
 {
