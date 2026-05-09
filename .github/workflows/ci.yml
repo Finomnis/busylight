@@ -71,6 +71,16 @@ jobs:
         run: |
           dfu-suffix --vid 1209 --pid d9d0 --add "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu"
 
+      - name: Sanity checks
+        working-directory: firmware/application
+        run: |
+          export DFU_SIZE=$(stat -c%s "target/busylight.${WORKSPACE_GIT_DESCRIBE}.dfu")
+          export HEX_SIZE=$(stat -c%s "target/busylight.${WORKSPACE_GIT_DESCRIBE}.hex")
+          echo "DFU: $DFU_SIZE"
+          echo "HEX: $HEX_SIZE"
+          (( $DFU_SIZE > 10000 ))
+          (( $HEX_SIZE > 100000 ))
+
       - name: Upload firmware dfu file as artifact
         uses: actions/upload-artifact@v7
         with:
@@ -132,6 +142,13 @@ jobs:
         working-directory: firmware/bootloader
         run: |
           cargo objcopy --release -- -O ihex target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex
+
+      - name: Sanity checks
+        working-directory: firmware/bootloader
+        run: |
+          export HEX_SIZE=$(stat -c%s "target/busylight.bootloader.${WORKSPACE_GIT_DESCRIBE}.hex")
+          echo $HEX_SIZE
+          (( $HEX_SIZE > 10000 ))
 
       - name: Upload firmware hex file as artifact
         uses: actions/upload-artifact@v7
