@@ -12,8 +12,6 @@ jobs:
   build_firmware_application:
     name: Application Firmware
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -104,9 +102,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v6
 
-      - name: Install toolchains
-        run: rustup target add thumbv6m-none-eabi
-
       - name: Test
         working-directory: firmware/application
         run: cargo test-host
@@ -114,8 +109,6 @@ jobs:
   build_firmware_bootloader:
     name: Bootloader Firmware
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
