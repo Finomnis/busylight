@@ -40,32 +40,20 @@ bind_interrupts!(struct Irqs {
     USB_DRD_FS => usb::InterruptHandler<peripherals::USB>;
 });
 
-const fn version_component_to_bcd(component: &str) -> u16 {
-    let bytes = component.as_bytes();
-    let mut value = 0u16;
-    let mut i = 0;
+const fn str_to_bcd(s: &str) -> u16 {
+    let value = match u16::from_str_radix(s, 10) {
+        Ok(value) => value,
+        Err(_) => panic!("invalid BCD value"),
+    };
 
-    while i < bytes.len() {
-        let byte = bytes[i];
-        assert!(
-            byte >= b'0' && byte <= b'9',
-            "crate version component must be decimal"
-        );
-        value = value * 10 + (byte - b'0') as u16;
-        i += 1;
-    }
-
-    assert!(
-        value <= 99,
-        "USB BCD version components must fit in two decimal digits"
-    );
+    assert!(value <= 99, "BCD value must fit in two decimal digits");
 
     ((value / 10) << 4) | (value % 10)
 }
 
-const USB_BCD_DEVICE_VERSION: u16 = (version_component_to_bcd(env!("CARGO_PKG_VERSION_MAJOR"))
-    << 8)
-    | version_component_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
+const USB_BCD_DEVICE_VERSION: u16 =
+    (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
+        | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
 
 // This is a randomly generated GUID to allow clients on Windows to find your device.
 const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
