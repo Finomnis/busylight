@@ -1,14 +1,10 @@
 # Busylight
 
 <p>
-<img src=".media/busylight_green.webp" alt="Green" width="25%">
-<img src=".media/busylight_yellow.webp" alt="Green" width="25%">
-<img src=".media/busylight_red.webp" alt="Green" width="25%">
+<img src=".media/busylight_green.webp" alt="Green" width="200">
+<img src=".media/busylight_yellow.webp" alt="Green" width="200">
+<img src=".media/busylight_red.webp" alt="Green" width="200">
 </p>
-
-![Green](/.media/busylight_green_small.jpg)
-![Yellow](/.media/busylight_yellow_small.jpg)
-![Red](/.media/busylight_red_small.jpg)
 
 An indicator that shows coworkers if you are busy.
 
