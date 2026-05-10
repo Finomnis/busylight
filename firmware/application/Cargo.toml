@@ -32,7 +32,7 @@ rtic = { workspace = true, features = ["thumbv6-backend"] }
 rtic-monotonics = { workspace = true, features = ["stm32u073cc", "stm32_tim2"] }
 rtic-sync.workspace = true
 futures = { workspace = true, features = ["async-await"] }
-portable-atomic = { version = "1", features = ["critical-section"] }
+portable-atomic = { workspace = true, features = ["critical-section"] }
 
 # HAL drivers
 embassy-stm32 = { workspace = true, features = [
