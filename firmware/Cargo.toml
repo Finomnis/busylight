@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["application", "bootloader", "core", "crates/*"]
+default-members = ["application"]
 
 [workspace.package]
 version = "0.2.0"
