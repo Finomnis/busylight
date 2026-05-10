@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["application", "bootloader", "crates/*"]
+members = ["application", "bootloader", "core", "crates/*"]
 
 [workspace.package]
 version = "0.2.0"
@@ -14,7 +14,7 @@ publish = false
 [workspace.dependencies]
 
 # Project internal dependencies
-neopixel-spi-encoder = { path = "./crates/neopixel-spi-encoder" }
+busylight-core = { path = "./core" }
 async-button-rtic = { path = "./crates/async-button-rtic" }
 
 # Base Cortex-M dependencies

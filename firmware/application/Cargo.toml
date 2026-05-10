@@ -16,7 +16,7 @@ test = false
 
 [dependencies]
 # Project internal dependencies
-neopixel-spi-encoder.workspace = true
+busylight-core.workspace = true
 async-button-rtic.workspace = true
 
 # Base Cortex-M dependencies

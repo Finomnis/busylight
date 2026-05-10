@@ -115,6 +115,7 @@ version = "0.2.0"
 dependencies = [
  "async-button-rtic",
  "bbqueue",
+ "busylight-core",
  "cortex-m",
  "cortex-m-rt",
  "embassy-boot-stm32",
@@ -130,7 +131,6 @@ dependencies = [
  "futures",
  "git-version",
  "log",
- "neopixel-spi-encoder",
  "portable-atomic",
  "rtic",
  "rtic-monotonics",
@@ -159,6 +159,10 @@ dependencies = [
  "portable-atomic",
  "static_cell",
 ]
+
+[[package]]
+name = "busylight-core"
+version = "0.2.0"
 
 [[package]]
 name = "byteorder"
@@ -957,10 +961,6 @@ name = "nb"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d5439c4ad607c3c23abf66de8c8bf57ba8adcd1f129e699851a6e43935d339d"
-
-[[package]]
-name = "neopixel-spi-encoder"
-version = "0.1.0"
 
 [[package]]
 name = "nu-ansi-term"

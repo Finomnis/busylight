@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), no_std)]
-
 fn bit(val: u8, pos: u8) -> u8 {
     (val >> pos) & 1
 }
