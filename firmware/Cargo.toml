@@ -69,4 +69,3 @@ lto = true
 
 [profile.release.package.busylight-bootloader]
 opt-level = 'z'
-# overflow-checks = false
