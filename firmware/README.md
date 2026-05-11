@@ -14,11 +14,13 @@ See https://rustup.rs/.
 ### Further dependencies
 
 - `flip-link`
+
   ```shell
   cargo install flip-link
   ```
 
 - `cargo objcopy`
+
   ```
   rustup component add llvm-tools
   cargo install cargo-binutils
