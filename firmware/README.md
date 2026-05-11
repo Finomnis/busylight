@@ -61,6 +61,16 @@ dfu-suffix --vid 1209 --pid d9d0 --add app.dfu
 sudo dfu-util --download app.dfu
 ```
 
+*Note*: It is normal to get the following error at the end of the update.
+This is currently a technical limitation, but it's purely cosmetic.
+
+```text
+...
+Download done.
+unable to read DFU status after completion (LIBUSB_ERROR_PIPE)
+```
+
+
 ## Bootloader
 
 
