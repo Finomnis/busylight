@@ -9,6 +9,7 @@ use std::{
 };
 
 use busylight::{BusyLight, BusyLightState};
+use image::RgbaImage;
 use tao::{
     event::Event,
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
@@ -130,7 +131,7 @@ fn main() {
 
     let mut tray_icon = None;
 
-    let mut icon = load_icon(&CROSS_MARK);
+    let mut icon: &RgbaImage = &CROSS_MARK;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -144,7 +145,7 @@ fn main() {
                         .with_menu(Box::new(tray_menu.clone()))
                         .with_title("Busylight")
                         .with_tooltip("BusyLight")
-                        .with_icon(icon.clone())
+                        .with_icon(load_icon(icon))
                         .build()
                         .unwrap(),
                 );
@@ -183,15 +184,15 @@ fn main() {
 
             Event::UserEvent(UserEvent::LedState(state)) => {
                 println!("{state:?}");
-                icon = load_icon(match &state {
+                icon = match &state {
                     LedState::Connected(BusyLightState::Off) => &BLACK_CIRCLE,
                     LedState::Connected(BusyLightState::Green) => &GREEN_CIRCLE,
                     LedState::Connected(BusyLightState::Yellow) => &YELLOW_CIRCLE,
                     LedState::Connected(BusyLightState::Red) => &RED_CIRCLE,
                     LedState::Disconnected => &CROSS_MARK,
-                });
+                };
                 if let Some(tray_icon) = &mut tray_icon {
-                    let _ = tray_icon.set_icon(Some(icon.clone()));
+                    let _ = tray_icon.set_icon(Some(load_icon(icon)));
                 }
                 if let LedState::Connected(_) = &state {
                     connected_label.set_text("Connected");
