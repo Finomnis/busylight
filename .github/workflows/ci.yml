@@ -153,8 +153,8 @@ jobs:
           if-no-files-found: error
           archive: false
 
-  build_software:
-    name: Host software
+  build_software_linux:
+    name: Host software (linux)
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: "-D warnings"
@@ -173,14 +173,15 @@ jobs:
         run: cargo build --release
 
   build_software_linux_musl:
-    name: Host software (Linux Musl)
+    name: Host software (linux-musl)
     runs-on: ubuntu-latest
     container: rust:alpine
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout sources
+        uses: actions/checkout@v6
 
-      - name: Install musl-native dependencies
+      - name: Install dependencies
         run: |
           apk add --no-cache \
             build-base \
@@ -191,7 +192,8 @@ jobs:
             eudev-dev \
             xdotool-dev
 
-      - name: Build x86_64 musl release
+      - name: Build
+        working-directory: software
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
