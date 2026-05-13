@@ -17,7 +17,7 @@ use tao::{
 };
 use tray_icon::{
     TrayIconBuilder, TrayIconEvent,
-    menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
+    menu::{AboutMetadata, IconMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -65,7 +65,6 @@ fn connection_thread(
     loop {
         let event = events.recv_timeout(Duration::from_millis(100));
 
-        #[allow(clippy::collapsible_if)]
         match event {
             Ok(state) => {
                 if let Some(connected_device) = &mut device {
@@ -114,10 +113,10 @@ fn main() {
     let tray_menu = Menu::new();
 
     let connected_label = MenuItem::new("Disconnected", false, None);
-    let menu_red = MenuItem::new("🔴 Do not disturb", false, None);
-    let menu_yellow = MenuItem::new("🟡 Concentrated", false, None);
-    let menu_green = MenuItem::new("🟢 Casual", false, None);
-    let menu_off = MenuItem::new("⚫ Off", false, None);
+    let menu_red = IconMenuItem::new("Do not disturb", false, load_menu_icon(RED_CIRCLE), None);
+    let menu_yellow = IconMenuItem::new("Concentrated", false, load_menu_icon(YELLOW_CIRCLE), None);
+    let menu_green = IconMenuItem::new("Casual", false, load_menu_icon(GREEN_CIRCLE), None);
+    let menu_off = IconMenuItem::new("Off", false, load_menu_icon(BLACK_CIRCLE), None);
     let menu_quit = MenuItem::new("Quit", true, None);
 
     tray_menu.append_items(&[
@@ -237,4 +236,17 @@ fn load_icon(data: &[u8]) -> tray_icon::Icon {
         (rgba, width, height)
     };
     tray_icon::Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to open icon")
+}
+
+fn load_menu_icon(data: &[u8]) -> Option<tray_icon::menu::Icon> {
+    let (icon_rgba, icon_width, icon_height) = {
+        let image = image::ImageReader::with_format(Cursor::new(data), image::ImageFormat::WebP)
+            .decode()
+            .ok()?
+            .into_rgba8();
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        (rgba, width, height)
+    };
+    tray_icon::menu::Icon::from_rgba(icon_rgba, icon_width, icon_height).ok()
 }
