@@ -2,12 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-#![allow(unused)]
-
 use std::{
     io::Cursor,
-    sync::mpsc::RecvTimeoutError,
-    time::{Duration, Instant},
+    sync::{LazyLock, mpsc::RecvTimeoutError},
+    time::Duration,
 };
 
 use busylight::{BusyLight, BusyLightState};
@@ -17,7 +15,7 @@ use tao::{
 };
 use tray_icon::{
     TrayIconBuilder, TrayIconEvent,
-    menu::{AboutMetadata, IconMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
+    menu::{IconMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -88,20 +86,18 @@ fn connection_thread(
 }
 
 fn main() {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/icon.png");
-
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
 
     // set a tray event handler that forwards the event and wakes up the event loop
     let proxy = event_loop.create_proxy();
     TrayIconEvent::set_event_handler(Some(move |event| {
-        proxy.send_event(UserEvent::TrayIconEvent(event));
+        let _ = proxy.send_event(UserEvent::TrayIconEvent(event));
     }));
 
     // set a menu event handler that forwards the event and wakes up the event loop
     let proxy = event_loop.create_proxy();
     MenuEvent::set_event_handler(Some(move |event| {
-        proxy.send_event(UserEvent::MenuEvent(event));
+        let _ = proxy.send_event(UserEvent::MenuEvent(event));
     }));
 
     let proxy = event_loop.create_proxy();
@@ -113,13 +109,14 @@ fn main() {
     let tray_menu = Menu::new();
 
     let connected_label = MenuItem::new("Disconnected", false, None);
-    let menu_red = IconMenuItem::new("Do not disturb", false, load_menu_icon(RED_CIRCLE), None);
-    let menu_yellow = IconMenuItem::new("Concentrated", false, load_menu_icon(YELLOW_CIRCLE), None);
-    let menu_green = IconMenuItem::new("Casual", false, load_menu_icon(GREEN_CIRCLE), None);
-    let menu_off = IconMenuItem::new("Off", false, load_menu_icon(BLACK_CIRCLE), None);
+    let menu_red = IconMenuItem::new("Do not disturb", false, load_menu_icon(&RED_CIRCLE), None);
+    let menu_yellow =
+        IconMenuItem::new("Concentrated", false, load_menu_icon(&YELLOW_CIRCLE), None);
+    let menu_green = IconMenuItem::new("Casual", false, load_menu_icon(&GREEN_CIRCLE), None);
+    let menu_off = IconMenuItem::new("Off", false, load_menu_icon(&BLACK_CIRCLE), None);
     let menu_quit = MenuItem::new("Quit", true, None);
 
-    tray_menu.append_items(&[
+    let _ = tray_menu.append_items(&[
         &connected_label,
         &PredefinedMenuItem::separator(),
         &menu_off,
@@ -133,10 +130,7 @@ fn main() {
 
     let mut tray_icon = None;
 
-    let menu_channel = MenuEvent::receiver();
-    let tray_channel = TrayIconEvent::receiver();
-
-    let mut icon = load_icon(CROSS_MARK);
+    let mut icon = load_icon(&CROSS_MARK);
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -166,7 +160,7 @@ fn main() {
                 }
             }
 
-            Event::UserEvent(UserEvent::TrayIconEvent(event)) => {
+            Event::UserEvent(UserEvent::TrayIconEvent(_event)) => {
                 //println!("{event:?}");
             }
 
@@ -190,14 +184,14 @@ fn main() {
             Event::UserEvent(UserEvent::LedState(state)) => {
                 println!("{state:?}");
                 icon = load_icon(match &state {
-                    LedState::Connected(BusyLightState::Off) => BLACK_CIRCLE,
-                    LedState::Connected(BusyLightState::Green) => GREEN_CIRCLE,
-                    LedState::Connected(BusyLightState::Yellow) => YELLOW_CIRCLE,
-                    LedState::Connected(BusyLightState::Red) => RED_CIRCLE,
-                    LedState::Disconnected => CROSS_MARK,
+                    LedState::Connected(BusyLightState::Off) => &BLACK_CIRCLE,
+                    LedState::Connected(BusyLightState::Green) => &GREEN_CIRCLE,
+                    LedState::Connected(BusyLightState::Yellow) => &YELLOW_CIRCLE,
+                    LedState::Connected(BusyLightState::Red) => &RED_CIRCLE,
+                    LedState::Disconnected => &CROSS_MARK,
                 });
                 if let Some(tray_icon) = &mut tray_icon {
-                    tray_icon.set_icon(Some(icon.clone()));
+                    let _ = tray_icon.set_icon(Some(icon.clone()));
                 }
                 if let LedState::Connected(_) = &state {
                     connected_label.set_text("Connected");
@@ -219,34 +213,33 @@ fn main() {
     })
 }
 
-const BLACK_CIRCLE: &[u8] = include_bytes!("../../assets/black-circle.webp");
-const RED_CIRCLE: &[u8] = include_bytes!("../../assets/red-circle.webp");
-const YELLOW_CIRCLE: &[u8] = include_bytes!("../../assets/yellow-circle.webp");
-const GREEN_CIRCLE: &[u8] = include_bytes!("../../assets/green-circle.webp");
-const CROSS_MARK: &[u8] = include_bytes!("../../assets/cross-mark.webp");
+const BLACK_CIRCLE_WEBP: &[u8] = include_bytes!("../../assets/black-circle.webp");
+const RED_CIRCLE_WEBP: &[u8] = include_bytes!("../../assets/red-circle.webp");
+const YELLOW_CIRCLE_WEBP: &[u8] = include_bytes!("../../assets/yellow-circle.webp");
+const GREEN_CIRCLE_WEBP: &[u8] = include_bytes!("../../assets/green-circle.webp");
+const CROSS_MARK_WEBP: &[u8] = include_bytes!("../../assets/cross-mark.webp");
 
-fn load_icon(data: &[u8]) -> tray_icon::Icon {
-    let (icon_rgba, icon_width, icon_height) = {
-        let image = image::ImageReader::with_format(Cursor::new(data), image::ImageFormat::WebP)
-            .decode()
-            .expect("Failed to decode icon")
-            .into_rgba8();
-        let (width, height) = image.dimensions();
-        let rgba = image.into_raw();
-        (rgba, width, height)
-    };
-    tray_icon::Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to open icon")
+static BLACK_CIRCLE: LazyLock<image::RgbaImage> = LazyLock::new(|| load_webp(BLACK_CIRCLE_WEBP));
+static RED_CIRCLE: LazyLock<image::RgbaImage> = LazyLock::new(|| load_webp(RED_CIRCLE_WEBP));
+static YELLOW_CIRCLE: LazyLock<image::RgbaImage> = LazyLock::new(|| load_webp(YELLOW_CIRCLE_WEBP));
+static GREEN_CIRCLE: LazyLock<image::RgbaImage> = LazyLock::new(|| load_webp(GREEN_CIRCLE_WEBP));
+static CROSS_MARK: LazyLock<image::RgbaImage> = LazyLock::new(|| load_webp(CROSS_MARK_WEBP));
+
+fn load_webp(data: &[u8]) -> image::RgbaImage {
+    image::ImageReader::with_format(Cursor::new(data), image::ImageFormat::WebP)
+        .decode()
+        .expect("Failed to decode icon")
+        .into_rgba8()
 }
 
-fn load_menu_icon(data: &[u8]) -> Option<tray_icon::menu::Icon> {
-    let (icon_rgba, icon_width, icon_height) = {
-        let image = image::ImageReader::with_format(Cursor::new(data), image::ImageFormat::WebP)
-            .decode()
-            .ok()?
-            .into_rgba8();
-        let (width, height) = image.dimensions();
-        let rgba = image.into_raw();
-        (rgba, width, height)
-    };
-    tray_icon::menu::Icon::from_rgba(icon_rgba, icon_width, icon_height).ok()
+fn load_icon(image: &image::RgbaImage) -> tray_icon::Icon {
+    let (width, height) = image.dimensions();
+    let rgba = image.clone().into_raw();
+    tray_icon::Icon::from_rgba(rgba, width, height).expect("Failed to open icon")
+}
+
+fn load_menu_icon(image: &image::RgbaImage) -> Option<tray_icon::menu::Icon> {
+    let (width, height) = image.dimensions();
+    let rgba = image.clone().into_raw();
+    tray_icon::menu::Icon::from_rgba(rgba, width, height).ok()
 }
