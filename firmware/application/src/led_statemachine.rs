@@ -1,3 +1,5 @@
+use core::sync::atomic::Ordering;
+
 use embassy_stm32::{
     mode::Async,
     spi::{self, Spi},
@@ -43,16 +45,18 @@ impl LedController {
         log::info!("led_control_loop");
 
         let mut enabled = true;
-        let mut color_id = 0;
+        let mut color_id = 0u8;
         let mut sleep = false;
 
         loop {
             if enabled
                 && !sleep
-                && let Some(&color) = COLORS.get(color_id)
+                && let Some(&color) = COLORS.get(usize::from(color_id))
             {
+                crate::LED_STATE.store(1 + color_id, Ordering::Relaxed);
                 self.set_led(color).await;
             } else {
+                crate::LED_STATE.store(0, Ordering::Relaxed);
                 self.set_led(OFF_COLOR).await;
             }
 
@@ -87,7 +91,7 @@ impl LedController {
                     if sleep {
                         sleep = false;
                     } else if enabled {
-                        color_id = (color_id + 1) % COLORS.len();
+                        color_id = (color_id + 1) % (COLORS.len() as u8);
                     }
                 }
                 LedEvent::LongPress => {

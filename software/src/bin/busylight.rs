@@ -47,6 +47,8 @@ fn connection_thread(
         if let Some(connected_device) = &device {
             if let Ok(state) = connected_device.read_state() {
                 new_state = LedState::Connected(state);
+            } else {
+                *device = None;
             }
         }
 
@@ -63,7 +65,9 @@ fn connection_thread(
         let event = events.recv_timeout(Duration::from_millis(500));
 
         match event {
-            Ok(state) => {
+            Ok(state) =>
+            {
+                #[allow(clippy::collapsible_if)]
                 if let Some(connected_device) = &mut device {
                     if connected_device.set_state(state).is_err() {
                         device = None;

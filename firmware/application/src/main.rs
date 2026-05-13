@@ -6,7 +6,7 @@ mod panic_handler;
 mod uart_logger;
 
 use async_button_rtic::{Button, ButtonConfig, ButtonEvent};
-use core::cell::RefCell;
+use core::{cell::RefCell, sync::atomic::Ordering};
 use embassy_boot_stm32::{AlignedBuffer, BlockingFirmwareState, FirmwareUpdaterConfig};
 use embassy_stm32::{
     Config, bind_interrupts, dma,
@@ -30,6 +30,7 @@ use embassy_usb::{
 use embassy_usb_dfu::application::{DfuAttributes, DfuState, usb_dfu};
 use led_statemachine::{LedController, LedEvent};
 use log::info;
+use portable_atomic::AtomicU8;
 use static_cell::ConstStaticCell;
 
 bind_interrupts!(struct Irqs {
@@ -51,9 +52,8 @@ const fn str_to_bcd(s: &str) -> u16 {
     ((value / 10) << 4) | (value % 10)
 }
 
-const USB_BCD_DEVICE_VERSION: u16 =
-    (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
-        | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
+const USB_BCD_DEVICE_VERSION: u16 = (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
+    | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
 
 // This is a randomly generated GUID to allow clients on Windows to find your device.
 const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
@@ -100,8 +100,40 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0x95, 0x01, // Report count 1
     0x91, 0x02, // Output: Data,Var,Abs
     //
+    // Feature report: PC queries current LED state
+    0x09, 0x02, //
+    0x15, 0x00, //
+    0x25, 0x03, //
+    0x75, 0x08, //
+    0x95, 0x01, //
+    0xb1, 0x02, // Feature
+    //
     0xc0, // End collection
 ];
+
+static LED_STATE: AtomicU8 = AtomicU8::new(0);
+
+struct HidRequestHandler;
+
+impl HidRequestHandler {
+    const fn new() -> Self {
+        Self
+    }
+}
+impl embassy_usb::class::hid::RequestHandler for HidRequestHandler {
+    fn get_report(
+        &mut self,
+        _id: embassy_usb::class::hid::ReportId,
+        buf: &mut [u8],
+    ) -> Option<usize> {
+        if buf.is_empty() {
+            return None;
+        }
+
+        buf[0] = LED_STATE.load(Ordering::Relaxed);
+        Some(1)
+    }
+}
 
 struct UsbEventHandler {
     queue: rtic_sync::channel::Sender<'static, LedEvent, 10>,
@@ -190,6 +222,7 @@ mod app {
         dfu_state: Option<DfuState<DfuHandler<'static, embassy_embedded_hal::flash::partition::BlockingPartition<'static, embassy_sync::blocking_mutex::raw::NoopRawMutex, BlockingFlash>>>> = None,
         hid_state: Option<hid::State<'static>> = None,
         usb_event_handler: Option<UsbEventHandler> = None,
+        hid_request_handler: HidRequestHandler = HidRequestHandler::new(),
     ])]
     fn init(mut cx: init::Context) -> (Shared, Local) {
         let mut config = Config::default();
@@ -282,7 +315,7 @@ mod app {
 
         let hid_config = hid::Config {
             report_descriptor: HID_REPORT_DESCRIPTOR,
-            request_handler: None,
+            request_handler: Some(cx.local.hid_request_handler),
             poll_ms: 10,
             max_packet_size: 8,
             hid_subclass: HidSubclass::No,

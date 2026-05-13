@@ -15,6 +15,10 @@ struct Cli {
 
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Retreives the current LED state
+    #[arg(long)]
+    get: bool,
 }
 
 #[derive(Subcommand, Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -46,6 +50,14 @@ fn main() -> miette::Result<()> {
             Commands::Green => BusyLightState::Green,
             Commands::Off => BusyLightState::Off,
         })?;
+    } else if cli.get {
+        let device = if let Some(serial) = cli.serial {
+            BusyLight::new_with_serial(serial)
+        } else {
+            BusyLight::new()
+        }?;
+        let state = device.read_state()?;
+        println!("{:?}", state);
     } else {
         let devices = BusyLight::list_devices()?;
         println!("Available BusyLights:");

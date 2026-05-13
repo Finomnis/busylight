@@ -10,6 +10,10 @@ pub enum BusyLightError {
     #[error(transparent)]
     #[diagnostic(code(busylight::hid))]
     IoError(#[from] HidError),
+
+    #[error("Device reported an unexpected state")]
+    #[diagnostic(code(busylight::unexpected_state))]
+    UnexpectedDeviceState,
 }
 
 pub struct BusyLight {
@@ -22,6 +26,20 @@ pub enum BusyLightState {
     Green = 1,
     Yellow = 2,
     Red = 3,
+}
+
+impl TryFrom<u8> for BusyLightState {
+    type Error = BusyLightError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Off),
+            1 => Ok(Self::Green),
+            2 => Ok(Self::Yellow),
+            3 => Ok(Self::Red),
+            _ => Err(BusyLightError::UnexpectedDeviceState),
+        }
+    }
 }
 
 impl BusyLight {
@@ -61,6 +79,9 @@ impl BusyLight {
     }
 
     pub fn read_state(&self) -> Result<BusyLightState, BusyLightError> {
-        Ok(BusyLightState::Off)
+        let mut buf = [0u8; 2];
+        self.device.get_feature_report(&mut buf)?;
+
+        BusyLightState::try_from(buf[1])
     }
 }
