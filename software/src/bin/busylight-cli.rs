@@ -65,9 +65,11 @@ async fn async_main() -> miette::Result<()> {
             }
             for device in devices {
                 let version = device.version.map(|version| {
-                    let major = (version >> 8) & 0xff;
+                    let major_high = (version >> 12) & 0xf;
+                    let major_low = (version >> 8) & 0xf;
                     let minor = (version >> 4) & 0xf;
                     let patch = version & 0xf;
+                    let major = 10 * major_high + major_low;
                     format!("v{major}.{minor}.{patch}")
                 });
                 println!(

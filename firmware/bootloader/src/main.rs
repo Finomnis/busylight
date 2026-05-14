@@ -45,7 +45,7 @@ const fn str_to_one(s: &str) -> u16 {
         Err(_) => panic!("invalid BCD value"),
     };
 
-    assert!(value <= 9, "BCD value must fit in one decimal digits");
+    assert!(value <= 9, "BCD value must fit in one decimal digit");
 
     value
 }
