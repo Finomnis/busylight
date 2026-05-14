@@ -27,6 +27,8 @@ enum Commands {
     List,
     /// Shows the current LED state
     Get,
+    /// Continuously print LED changes
+    Listen,
 }
 
 fn main() -> miette::Result<()> {
@@ -47,6 +49,13 @@ fn main() -> miette::Result<()> {
         Commands::Green => device()?.set_state(BusyLightState::Green)?,
         Commands::Off => device()?.set_state(BusyLightState::Off)?,
         Commands::Get => println!("{:?}", device()?.read_state()?),
+        Commands::Listen => {
+            let device = device()?;
+            println!("{:?}", device.read_state()?);
+            loop {
+                println!("{:?}", device.wait_for_state_change(-1)?);
+            }
+        }
         Commands::List => {
             let devices = BusyLight::list_devices()?;
             println!("Available BusyLights:");

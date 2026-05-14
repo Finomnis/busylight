@@ -18,6 +18,10 @@ pub enum BusyLightError {
     #[error("Device responded with an invalid feature report")]
     #[diagnostic(code(busylight::invalid_feature_report))]
     InvalidFeatureReport,
+
+    #[error("Waiting for an input report timed out")]
+    #[diagnostic(code(busylight::input_report_timeout))]
+    InputReportTimeout,
 }
 
 pub struct BusyLight {
@@ -90,6 +94,16 @@ impl BusyLight {
             BusyLightState::try_from(buf[1])
         } else {
             Err(BusyLightError::InvalidFeatureReport)
+        }
+    }
+
+    pub fn wait_for_state_change(&self, timeout_ms: i32) -> Result<BusyLightState, BusyLightError> {
+        let mut buf = [0u8; 1];
+        let read_len = self.device.read_timeout(&mut buf, timeout_ms)?;
+        if read_len == 0 {
+            Err(BusyLightError::InputReportTimeout)
+        } else {
+            BusyLightState::try_from(buf[0])
         }
     }
 }

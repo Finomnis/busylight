@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "busylight-application"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-button-rtic",
  "bbqueue",
@@ -140,7 +140,7 @@ dependencies = [
 
 [[package]]
 name = "busylight-bootloader"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -162,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "busylight-core"
-version = "0.3.0"
+version = "0.4.0"
 
 [[package]]
 name = "byteorder"

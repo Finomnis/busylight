@@ -4,9 +4,10 @@
 mod led_statemachine;
 mod panic_handler;
 mod uart_logger;
+mod usb_utils;
 
 use async_button_rtic::{Button, ButtonConfig, ButtonEvent};
-use core::{cell::RefCell, sync::atomic::Ordering};
+use core::cell::RefCell;
 use embassy_boot_stm32::{AlignedBuffer, BlockingFirmwareState, FirmwareUpdaterConfig};
 use embassy_stm32::{
     Config, bind_interrupts, dma,
@@ -24,7 +25,7 @@ use embassy_stm32::{
 };
 use embassy_usb::{
     UsbDevice,
-    class::hid::{self, HidBootProtocol, HidReaderWriter, HidSubclass},
+    class::hid::{self, HidBootProtocol, HidReader, HidSubclass, HidWriter},
     msos,
 };
 use embassy_usb_dfu::application::{DfuAttributes, DfuState, usb_dfu};
@@ -32,6 +33,9 @@ use led_statemachine::{LedController, LedEvent};
 use log::info;
 use portable_atomic::AtomicU8;
 use static_cell::ConstStaticCell;
+use usb_utils::{
+    DEVICE_INTERFACE_GUIDS, HidRequestHandler, USB_BCD_DEVICE_VERSION, UsbEventHandler,
+};
 
 bind_interrupts!(struct Irqs {
     DMA1_CHANNEL2_3 =>
@@ -40,23 +44,6 @@ bind_interrupts!(struct Irqs {
     EXTI4_15 => exti::InterruptHandler<interrupt::typelevel::EXTI4_15>;
     USB_DRD_FS => usb::InterruptHandler<peripherals::USB>;
 });
-
-const fn str_to_bcd(s: &str) -> u16 {
-    let value = match u16::from_str_radix(s, 10) {
-        Ok(value) => value,
-        Err(_) => panic!("invalid BCD value"),
-    };
-
-    assert!(value <= 99, "BCD value must fit in two decimal digits");
-
-    ((value / 10) << 4) | (value % 10)
-}
-
-const USB_BCD_DEVICE_VERSION: u16 = (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
-    | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
-
-// This is a randomly generated GUID to allow clients on Windows to find your device.
-const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];
 
 struct DfuHandler<'d, FLASH: embedded_storage::nor_flash::NorFlash> {
     firmware_state: BlockingFirmwareState<'d, FLASH>,
@@ -108,91 +95,18 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0x95, 0x01, //
     0xb1, 0x02, // Feature
     //
+    // Input report: device pushes current LED state
+    0x09, 0x03, //
+    0x15, 0x00, //
+    0x25, 0x03, //
+    0x75, 0x08, //
+    0x95, 0x01, //
+    0x81, 0x02, // Input
+    //
     0xc0, // End collection
 ];
 
 static LED_STATE: AtomicU8 = AtomicU8::new(0);
-
-struct HidRequestHandler;
-
-impl HidRequestHandler {
-    const fn new() -> Self {
-        Self
-    }
-}
-impl embassy_usb::class::hid::RequestHandler for HidRequestHandler {
-    fn get_report(
-        &mut self,
-        _id: embassy_usb::class::hid::ReportId,
-        buf: &mut [u8],
-    ) -> Option<usize> {
-        if buf.is_empty() {
-            return None;
-        }
-
-        buf[0] = LED_STATE.load(Ordering::Relaxed);
-        Some(1)
-    }
-}
-
-struct UsbEventHandler {
-    queue: rtic_sync::channel::Sender<'static, LedEvent, 10>,
-    // Only activate after the PC was connected at least once
-    was_already_connected: bool,
-    suspended: bool,
-    addressed: bool,
-    was_on_previously: bool,
-}
-impl UsbEventHandler {
-    pub fn new(queue: rtic_sync::channel::Sender<'static, LedEvent, 10>) -> Self {
-        Self {
-            queue,
-            was_already_connected: false,
-            suspended: false,
-            addressed: false,
-            was_on_previously: false,
-        }
-    }
-
-    fn update_leds(&mut self) {
-        let should_be_on = self.addressed && !self.suspended;
-
-        let mut success = true;
-
-        if self.was_already_connected && (should_be_on != self.was_on_previously) {
-            success = if should_be_on {
-                self.queue.try_send(LedEvent::ExitSleep)
-            } else {
-                self.queue.try_send(LedEvent::EnterSleep)
-            }
-            .is_ok();
-        }
-
-        if should_be_on {
-            self.was_already_connected = true;
-        }
-        if success {
-            self.was_on_previously = should_be_on;
-        }
-    }
-}
-impl embassy_usb::Handler for UsbEventHandler {
-    fn suspended(&mut self, suspended: bool) {
-        self.suspended = suspended;
-        self.update_leds();
-    }
-
-    fn addressed(&mut self, _addr: u8) {
-        self.addressed = true;
-        self.update_leds();
-    }
-
-    fn reset(&mut self) {
-        self.suspended = false;
-        self.addressed = false;
-        self.update_leds();
-    }
-}
 
 #[rtic::app(
     device = ::embassy_stm32::pac,
@@ -214,7 +128,10 @@ mod app {
         button: Button<ExtiInput<'static, Async>, Mono>,
         log_handler: uart_logger::UartLogHandler,
         usb_dev: UsbDevice<'static, usb::Driver<'static, peripherals::USB>>,
-        hid: HidReaderWriter<'static, usb::Driver<'static, peripherals::USB>, 8, 8>,
+        hid_reader: HidReader<'static, usb::Driver<'static, peripherals::USB>, 8>,
+        hid_writer: HidWriter<'static, usb::Driver<'static, peripherals::USB>, 8>,
+        state_changed_writer: rtic_sync::signal::SignalWriter<'static, u8>,
+        state_changed_reader: rtic_sync::signal::SignalReader<'static, u8>,
     }
 
     #[init(local = [
@@ -322,7 +239,9 @@ mod app {
             hid_boot_protocol: HidBootProtocol::None,
         };
 
-        let hid = hid::HidReaderWriter::<_, 8, 8>::new(&mut builder, hid_state, hid_config);
+        let (hid_reader, hid_writer) =
+            hid::HidReaderWriter::<_, 8, 8>::new(&mut builder, hid_state, hid_config).split();
+        let (state_changed_writer, state_changed_reader) = rtic_sync::make_signal!(u8);
 
         // We add MSOS headers so that the device automatically gets assigned the WinUSB driver on Windows.
         // Otherwise users need to do this manually using a tool like Zadig.
@@ -366,7 +285,8 @@ mod app {
         led_control_loop::spawn().unwrap();
         log_handler::spawn().unwrap();
         usb_handler::spawn().unwrap();
-        usb_hid_handler::spawn().unwrap();
+        usb_hid_reader::spawn().unwrap();
+        usb_hid_writer::spawn().unwrap();
         button_handler::spawn().unwrap();
 
         (
@@ -376,7 +296,10 @@ mod app {
                 button,
                 log_handler,
                 usb_dev,
-                hid,
+                hid_reader,
+                hid_writer,
+                state_changed_writer,
+                state_changed_reader,
             },
         )
     }
@@ -404,9 +327,20 @@ mod app {
         usb_dev.run().await;
     }
 
-    #[task(priority = 2, local = [hid], shared = [&led_event_sender])]
-    async fn usb_hid_handler(ctx: usb_hid_handler::Context) {
-        let hid = ctx.local.hid;
+    #[task(priority = 2, local = [hid_writer, state_changed_reader])]
+    async fn usb_hid_writer(ctx: usb_hid_writer::Context) {
+        let hid = ctx.local.hid_writer;
+        let state_receiver = ctx.local.state_changed_reader;
+
+        loop {
+            let state = state_receiver.wait().await;
+            let _ = hid.write(&[state]).await;
+        }
+    }
+
+    #[task(priority = 2, local = [hid_reader], shared = [&led_event_sender])]
+    async fn usb_hid_reader(ctx: usb_hid_reader::Context) {
+        let hid = ctx.local.hid_reader;
         let mut event_sender = ctx.shared.led_event_sender.clone();
 
         let hid_report = &mut [0u8; 8];
@@ -452,8 +386,11 @@ mod app {
         }
     }
 
-    #[task(priority = 3, local = [led_controller])]
+    #[task(priority = 3, local = [led_controller, state_changed_writer])]
     async fn led_control_loop(ctx: led_control_loop::Context) {
-        ctx.local.led_controller.run().await;
+        ctx.local
+            .led_controller
+            .run(ctx.local.state_changed_writer)
+            .await;
     }
 }

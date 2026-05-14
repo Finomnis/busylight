@@ -41,7 +41,7 @@ impl LedController {
         self.spi.write(data).await.unwrap();
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(&mut self, state_changed: &mut rtic_sync::signal::SignalWriter<'static, u8>) {
         log::info!("led_control_loop");
 
         let mut enabled = true;
@@ -54,9 +54,11 @@ impl LedController {
                 && let Some(&color) = COLORS.get(usize::from(color_id))
             {
                 crate::LED_STATE.store(1 + color_id, Ordering::Relaxed);
+                state_changed.write(1 + color_id);
                 self.set_led(color).await;
             } else {
                 crate::LED_STATE.store(0, Ordering::Relaxed);
+                state_changed.write(0);
                 self.set_led(OFF_COLOR).await;
             }
 
