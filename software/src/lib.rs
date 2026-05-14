@@ -80,8 +80,12 @@ impl BusyLight {
 
     pub fn read_state(&self) -> Result<BusyLightState, BusyLightError> {
         let mut buf = [0u8; 2];
-        self.device.get_feature_report(&mut buf)?;
+        let read_len = self.device.get_feature_report(&mut buf)?;
 
-        BusyLightState::try_from(buf[1])
+        if read_len >= 2 {
+            BusyLightState::try_from(buf[1])
+        } else {
+            Err(BusyLightError::UnexpectedDeviceState)
+        }
     }
 }
