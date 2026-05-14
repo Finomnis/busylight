@@ -1,4 +1,7 @@
-use hidapi::{HidApi, HidDevice, HidError};
+use async_hid::{
+    AsyncHidFeatureHandle, AsyncHidRead, AsyncHidWrite, DeviceInfo, HidBackend, HidError,
+};
+use futures_util::StreamExt;
 use miette::Diagnostic;
 use thiserror::Error;
 
@@ -11,6 +14,10 @@ pub enum BusyLightError {
     #[diagnostic(code(busylight::hid))]
     IoError(#[from] HidError),
 
+    #[error("Device not found")]
+    #[diagnostic(code(busylight::no_device))]
+    DeviceNotFound,
+
     #[error("Device reported an unexpected state")]
     #[diagnostic(code(busylight::unexpected_state))]
     UnexpectedDeviceState,
@@ -19,13 +26,15 @@ pub enum BusyLightError {
     #[diagnostic(code(busylight::invalid_feature_report))]
     InvalidFeatureReport,
 
-    #[error("Waiting for an input report timed out")]
-    #[diagnostic(code(busylight::input_report_timeout))]
-    InputReportTimeout,
+    #[error("Device sent an invalid input report")]
+    #[diagnostic(code(busylight::invalid_input_report))]
+    InvalidInputReport,
 }
 
 pub struct BusyLight {
-    device: HidDevice,
+    reader: async_hid::DeviceReader,
+    writer: async_hid::DeviceWriter,
+    feature: async_hid::DeviceFeatureHandle,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -51,59 +60,115 @@ impl TryFrom<u8> for BusyLightState {
 }
 
 impl BusyLight {
-    pub fn new() -> Result<Self, BusyLightError> {
-        let api = HidApi::new()?;
+    pub async fn new() -> Result<Self, BusyLightError> {
+        let backend = HidBackend::default();
+        let mut devices = backend.enumerate().await?;
 
-        let device = api.open(VID, PID)?;
+        let device = loop {
+            match devices.next().await {
+                Some(dev) if dev.vendor_id == VID && dev.product_id == PID => {
+                    break dev;
+                }
+                Some(_) => continue,
+                None => return Err(BusyLightError::DeviceNotFound),
+            }
+        };
 
-        Ok(Self { device })
+        let (reader, writer) = device.open().await?;
+
+        let feature = device.open_feature_handle().await?;
+
+        Ok(Self {
+            reader,
+            writer,
+            feature,
+        })
     }
 
-    pub fn new_with_serial(serial: impl AsRef<str>) -> Result<Self, BusyLightError> {
-        let api = HidApi::new()?;
+    pub async fn new_with_serial(serial: impl AsRef<str>) -> Result<Self, BusyLightError> {
+        let serial = serial.as_ref();
 
-        let device = api.open_serial(VID, PID, serial.as_ref())?;
+        let backend = HidBackend::default();
+        let mut devices = backend.enumerate().await?;
 
-        Ok(Self { device })
+        let device = loop {
+            match devices.next().await {
+                Some(dev)
+                    if dev.vendor_id == VID
+                        && dev.product_id == PID
+                        && dev.serial_number.as_deref() == Some(serial) =>
+                {
+                    break dev;
+                }
+                Some(_) => continue,
+                None => return Err(BusyLightError::DeviceNotFound),
+            }
+        };
+
+        let (reader, writer) = device.open().await?;
+
+        let feature = device.open_feature_handle().await?;
+
+        Ok(Self {
+            reader,
+            writer,
+            feature,
+        })
     }
 
-    pub fn list_devices() -> Result<Vec<hidapi::DeviceInfo>, BusyLightError> {
-        let api = HidApi::new()?;
+    pub async fn list_devices() -> Result<Vec<DeviceInfo>, BusyLightError> {
+        let devices = HidBackend::default()
+            .enumerate()
+            .await?
+            .filter_map(async |dev| {
+                if dev.vendor_id == VID && dev.product_id == PID {
+                    Some(dev.to_device_info())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .await;
 
-        Ok(api
-            .device_list()
-            .filter(|dev| dev.vendor_id() == VID && dev.product_id() == PID)
-            .cloned()
-            .collect())
+        Ok(devices)
     }
 
-    fn send_value(&self, value: u8) -> Result<(), BusyLightError> {
-        self.device.write(&[0x00, value])?;
-        Ok(())
+    async fn send_value(&mut self, value: u8) -> Result<(), BusyLightError> {
+        self.writer
+            .write_output_report(&[0x00, value])
+            .await
+            .map_err(Into::into)
     }
 
-    pub fn set_state(&self, state: BusyLightState) -> Result<(), BusyLightError> {
-        self.send_value(state as u8)
+    pub async fn set_state(&mut self, state: BusyLightState) -> Result<(), BusyLightError> {
+        self.send_value(state as u8).await
     }
 
-    pub fn read_state(&self) -> Result<BusyLightState, BusyLightError> {
+    pub async fn read_state(&mut self) -> Result<BusyLightState, BusyLightError> {
         let mut buf = [0u8; 2];
-        let read_len = self.device.get_feature_report(&mut buf)?;
+        let read_len = self.feature.read_feature_report(&mut buf).await?;
 
-        if read_len >= 2 {
-            BusyLightState::try_from(buf[1])
-        } else {
-            Err(BusyLightError::InvalidFeatureReport)
+        match read_len {
+            // Backends that return report ID 0 + one-byte payload.
+            2 if buf[0] == 0 => BusyLightState::try_from(buf[1]),
+
+            // Backends that return only the payload for unnumbered reports.
+            1 => BusyLightState::try_from(buf[0]),
+
+            _ => Err(BusyLightError::InvalidFeatureReport),
         }
     }
 
-    pub fn wait_for_state_change(&self, timeout_ms: i32) -> Result<BusyLightState, BusyLightError> {
-        let mut buf = [0u8; 1];
-        let read_len = self.device.read_timeout(&mut buf, timeout_ms)?;
+    pub async fn wait_for_state_change(&mut self) -> Result<BusyLightState, BusyLightError> {
+        let mut value = 0u8;
+        let read_len = self
+            .reader
+            .read_input_report(core::slice::from_mut(&mut value))
+            .await?;
         if read_len == 0 {
-            Err(BusyLightError::InputReportTimeout)
+            Err(BusyLightError::InvalidInputReport)
         } else {
-            BusyLightState::try_from(buf[0])
+            BusyLightState::try_from(value)
         }
     }
 }

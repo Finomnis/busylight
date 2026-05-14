@@ -31,47 +31,46 @@ enum Commands {
     Listen,
 }
 
-fn main() -> miette::Result<()> {
+async fn async_main() -> miette::Result<()> {
     let cli = Cli::parse();
 
-    let device = || -> Result<BusyLight, BusyLightError> {
+    let device = async || -> Result<BusyLight, BusyLightError> {
         if let Some(serial) = cli.serial {
-            BusyLight::new_with_serial(serial)
+            BusyLight::new_with_serial(serial).await
         } else {
-            BusyLight::new()
+            BusyLight::new().await
         }
     };
 
     let command = cli.command.unwrap_or(Commands::List);
     match command {
-        Commands::Red => device()?.set_state(BusyLightState::Red)?,
-        Commands::Yellow => device()?.set_state(BusyLightState::Yellow)?,
-        Commands::Green => device()?.set_state(BusyLightState::Green)?,
-        Commands::Off => device()?.set_state(BusyLightState::Off)?,
-        Commands::Get => println!("{:?}", device()?.read_state()?),
+        Commands::Red => device().await?.set_state(BusyLightState::Red).await?,
+        Commands::Yellow => device().await?.set_state(BusyLightState::Yellow).await?,
+        Commands::Green => device().await?.set_state(BusyLightState::Green).await?,
+        Commands::Off => device().await?.set_state(BusyLightState::Off).await?,
+        Commands::Get => println!("{:?}", device().await?.read_state().await?),
         Commands::Listen => {
-            let device = device()?;
-            println!("{:?}", device.read_state()?);
+            let mut device = device().await?;
+            println!("{:?}", device.read_state().await?);
             loop {
-                println!("{:?}", device.wait_for_state_change(-1)?);
+                println!("{:?}", device.wait_for_state_change().await?);
             }
         }
         Commands::List => {
-            let devices = BusyLight::list_devices()?;
+            let devices = BusyLight::list_devices().await?;
             println!("Available BusyLights:");
             println!();
             if devices.is_empty() {
                 println!("   -- none --");
             }
             for device in devices {
-                let [major, minor] = device.release_number().to_be_bytes();
+                let [major, minor] = ['?', '?']; //device.release_number.to_be_bytes();
                 println!(
-                    "   - {} {} v{}.{} (serial: {})",
-                    device.manufacturer_string().unwrap_or("??"),
-                    device.product_string().unwrap_or("??"),
+                    "   - {} v{}.{} (serial: {})",
+                    device.name,
                     major,
                     minor,
-                    device.serial_number().unwrap_or("??"),
+                    device.serial_number.as_deref().unwrap_or("??"),
                 )
             }
             println!();
@@ -79,4 +78,8 @@ fn main() -> miette::Result<()> {
     }
 
     Ok(())
+}
+
+fn main() -> miette::Result<()> {
+    async_io::block_on(async_main())
 }

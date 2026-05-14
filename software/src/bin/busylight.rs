@@ -30,22 +30,22 @@ enum UserEvent {
     LedState(LedState),
 }
 
-fn connection_thread(
+async fn connection_thread(
     events: std::sync::mpsc::Receiver<BusyLightState>,
     event_sender: EventLoopProxy<UserEvent>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut device = None;
 
-    fn try_connect(device: &mut Option<BusyLight>) -> LedState {
+    async fn try_connect(mut device: &mut Option<BusyLight>) -> LedState {
         if device.is_none() {
-            *device = BusyLight::new().ok();
+            *device = BusyLight::new().await.ok();
         }
 
         let mut new_state = LedState::Disconnected;
 
         #[allow(clippy::collapsible_if)]
-        if let Some(connected_device) = &device {
-            if let Ok(state) = connected_device.read_state() {
+        if let Some(connected_device) = &mut device {
+            if let Ok(state) = connected_device.read_state().await {
                 new_state = LedState::Connected(state);
             } else {
                 *device = None;
@@ -58,7 +58,7 @@ fn connection_thread(
     let mut previous_state = LedState::Disconnected;
     event_sender.send_event(UserEvent::LedState(previous_state))?;
 
-    previous_state = try_connect(&mut device);
+    previous_state = try_connect(&mut device).await;
     event_sender.send_event(UserEvent::LedState(previous_state))?;
 
     loop {
@@ -69,7 +69,7 @@ fn connection_thread(
             {
                 #[allow(clippy::collapsible_if)]
                 if let Some(connected_device) = &mut device {
-                    if connected_device.set_state(state).is_err() {
+                    if connected_device.set_state(state).await.is_err() {
                         device = None;
                     }
                 }
@@ -80,7 +80,7 @@ fn connection_thread(
             Err(RecvTimeoutError::Timeout) => {}
         }
 
-        let new_state = try_connect(&mut device);
+        let new_state = try_connect(&mut device).await;
         if new_state != previous_state {
             previous_state = new_state;
             event_sender.send_event(UserEvent::LedState(new_state))?;
@@ -106,7 +106,7 @@ fn main() {
     let proxy = event_loop.create_proxy();
     let (busylight_setter, busylight_receiver) = std::sync::mpsc::sync_channel::<BusyLightState>(1);
     std::thread::spawn(move || {
-        let _ = connection_thread(busylight_receiver, proxy);
+        let _ = async_io::block_on(connection_thread(busylight_receiver, proxy));
     });
 
     let tray_menu = Menu::new();
