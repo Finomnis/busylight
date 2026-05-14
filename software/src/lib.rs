@@ -97,10 +97,7 @@ impl BusyLight {
         }
     }
 
-    pub fn wait_for_state_changes(
-        &self,
-        timeout_ms: i32,
-    ) -> Result<BusyLightState, BusyLightError> {
+    pub fn wait_for_state_change(&self, timeout_ms: i32) -> Result<BusyLightState, BusyLightError> {
         let mut buf = [0u8; 1];
         let read_len = self.device.read_timeout(&mut buf, timeout_ms)?;
         if read_len == 0 {

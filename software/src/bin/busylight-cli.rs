@@ -53,7 +53,7 @@ fn main() -> miette::Result<()> {
             let device = device()?;
             println!("{:?}", device.read_state()?);
             loop {
-                println!("{:?}", device.wait_for_state_changes(-1)?);
+                println!("{:?}", device.wait_for_state_change(-1)?);
             }
         }
         Commands::List => {
