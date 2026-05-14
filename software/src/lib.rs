@@ -1,6 +1,6 @@
-use async_hid::{
-    AsyncHidFeatureHandle, AsyncHidRead, AsyncHidWrite, DeviceInfo, HidBackend, HidError,
-};
+use std::collections::HashMap;
+
+use async_hid::{AsyncHidFeatureHandle, AsyncHidRead, AsyncHidWrite, HidBackend, HidError};
 use futures_util::StreamExt;
 use miette::Diagnostic;
 use thiserror::Error;
@@ -57,6 +57,15 @@ impl TryFrom<u8> for BusyLightState {
             _ => Err(BusyLightError::UnexpectedDeviceState),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct BusyLightDeviceInfo {
+    pub name: String,
+    pub vendor_id: u16,
+    pub product_id: u16,
+    pub serial_number: Option<String>,
+    pub version: Option<u16>,
 }
 
 impl BusyLight {
@@ -116,16 +125,41 @@ impl BusyLight {
         })
     }
 
-    pub async fn list_devices() -> Result<Vec<DeviceInfo>, BusyLightError> {
+    pub async fn list_devices() -> Result<Vec<BusyLightDeviceInfo>, BusyLightError> {
+        let versions = nusb::list_devices().await.ok().map(|devs| {
+            devs.filter_map(|dev| {
+                if dev.vendor_id() == VID && dev.product_id() == PID {
+                    dev.serial_number()
+                        .map(|serial| (serial.to_string(), dev.device_version()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<_, _>>()
+        });
+
         let devices = HidBackend::default()
             .enumerate()
             .await?
             .filter_map(async |dev| {
-                if dev.vendor_id == VID && dev.product_id == PID {
-                    Some(dev.to_device_info())
-                } else {
-                    None
+                if dev.vendor_id != VID && dev.product_id != PID {
+                    return None;
                 }
+
+                let version =
+                    if let (Some(versions), Some(serial)) = (&versions, &dev.serial_number) {
+                        versions.get(serial).copied()
+                    } else {
+                        None
+                    };
+
+                Some(BusyLightDeviceInfo {
+                    name: dev.name.clone(),
+                    vendor_id: dev.vendor_id,
+                    product_id: dev.product_id,
+                    serial_number: dev.serial_number.clone(),
+                    version,
+                })
             })
             .collect::<Vec<_>>()
             .await;

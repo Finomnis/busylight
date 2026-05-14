@@ -9,6 +9,7 @@ async-hid = "0.5.1"
 futures-util = "0.3.32"
 futures = "0.3.32"
 async-io = "2.6.0"
+nusb = "0.2.3"
 
 # busylight-tray
 tao = "0.35.2"

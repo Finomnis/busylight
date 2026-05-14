@@ -2,7 +2,7 @@ use core::sync::atomic::Ordering;
 
 use crate::led_statemachine::LedEvent;
 
-const fn str_to_bcd(s: &str) -> u16 {
+const fn str_to_two(s: &str) -> u16 {
     let value = match u16::from_str_radix(s, 10) {
         Ok(value) => value,
         Err(_) => panic!("invalid BCD value"),
@@ -13,8 +13,20 @@ const fn str_to_bcd(s: &str) -> u16 {
     ((value / 10) << 4) | (value % 10)
 }
 
-pub const USB_BCD_DEVICE_VERSION: u16 = (str_to_bcd(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
-    | str_to_bcd(env!("CARGO_PKG_VERSION_MINOR"));
+const fn str_to_one(s: &str) -> u16 {
+    let value = match u16::from_str_radix(s, 10) {
+        Ok(value) => value,
+        Err(_) => panic!("invalid BCD value"),
+    };
+
+    assert!(value <= 9, "BCD value must fit in one decimal digits");
+
+    value
+}
+
+pub const USB_BCD_DEVICE_VERSION: u16 = (str_to_two(env!("CARGO_PKG_VERSION_MAJOR")) << 8)
+    | (str_to_one(env!("CARGO_PKG_VERSION_MINOR")) << 4)
+    | str_to_one(env!("CARGO_PKG_VERSION_PATCH"));
 
 // This is a randomly generated GUID to allow clients on Windows to find your device.
 pub const DEVICE_INTERFACE_GUIDS: &[&str] = &["{1d58b148-7511-410d-84b5-698f7ee0532b}"];

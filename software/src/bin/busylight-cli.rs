@@ -64,12 +64,16 @@ async fn async_main() -> miette::Result<()> {
                 println!("   -- none --");
             }
             for device in devices {
-                let [major, minor] = ['?', '?']; //device.release_number.to_be_bytes();
+                let version = device.version.map(|version| {
+                    let major = (version >> 8) & 0xff;
+                    let minor = (version >> 4) & 0xf;
+                    let patch = version & 0xf;
+                    format!("v{major}.{minor}.{patch}")
+                });
                 println!(
-                    "   - {} v{}.{} (serial: {})",
+                    "   - {} {} (serial: {})",
                     device.name,
-                    major,
-                    minor,
+                    version.as_deref().unwrap_or("v?.?.?"),
                     device.serial_number.as_deref().unwrap_or("??"),
                 )
             }
