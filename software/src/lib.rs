@@ -186,7 +186,7 @@ impl BusyLight {
             // Backends that return report ID + one-byte payload.
             2 => BusyLightState::try_from(buf[1]),
 
-            // Backends that return only the one-byte payload
+            // Backends that return only the one-byte payload.
             1 => BusyLightState::try_from(buf[0]),
 
             _ => Err(BusyLightError::InvalidFeatureReport),
