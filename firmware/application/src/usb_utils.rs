@@ -1,5 +1,7 @@
 use core::sync::atomic::Ordering;
 
+use embassy_usb::class::hid;
+
 use crate::led_statemachine::LedEvent;
 
 const fn str_to_two(s: &str) -> u16 {
@@ -38,18 +40,19 @@ impl HidRequestHandler {
         Self
     }
 }
-impl embassy_usb::class::hid::RequestHandler for HidRequestHandler {
-    fn get_report(
-        &mut self,
-        _id: embassy_usb::class::hid::ReportId,
-        buf: &mut [u8],
-    ) -> Option<usize> {
-        if buf.is_empty() {
-            return None;
-        }
+impl hid::RequestHandler for HidRequestHandler {
+    fn get_report(&mut self, id: hid::ReportId, buf: &mut [u8]) -> Option<usize> {
+        match id {
+            hid::ReportId::In(2) | hid::ReportId::Feature(2) => {
+                if buf.is_empty() {
+                    return None;
+                }
 
-        buf[0] = crate::LED_STATE.load(Ordering::Relaxed);
-        Some(1)
+                buf[0] = crate::LED_STATE.load(Ordering::Relaxed);
+                Some(1)
+            }
+            _ => None,
+        }
     }
 }
 

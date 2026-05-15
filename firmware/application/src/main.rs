@@ -80,6 +80,7 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0xa1, 0x01, // Collection: Application
     //
     // Output report: 1 byte, values 0..3.
+    0x85, 0x01, // Report ID 1
     0x09, 0x01, // Usage: busy state
     0x15, 0x00, // Logical min 0
     0x25, 0x03, // Logical max 3
@@ -88,6 +89,7 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0x91, 0x02, // Output: Data,Var,Abs
     //
     // Feature report: PC queries current LED state
+    0x85, 0x02, // Report ID 2
     0x09, 0x02, //
     0x15, 0x00, //
     0x25, 0x03, //
@@ -96,6 +98,7 @@ const HID_REPORT_DESCRIPTOR: &[u8] = &[
     0xb1, 0x02, // Feature
     //
     // Input report: device pushes current LED state
+    0x85, 0x03, // Report ID 3
     0x09, 0x03, //
     0x15, 0x00, //
     0x25, 0x03, //
@@ -334,7 +337,7 @@ mod app {
 
         loop {
             let state = state_receiver.wait().await;
-            let _ = hid.write(&[state]).await;
+            let _ = hid.write(&[3, state]).await;
         }
     }
 
@@ -347,10 +350,11 @@ mod app {
 
         loop {
             hid.ready().await;
-            if let Ok(val) = hid.read(hid_report).await
-                && val >= 1
+            if let Ok(len) = hid.read(hid_report).await
+                && len >= 2
+                && hid_report[0] == 1
             {
-                match hid_report[0] {
+                match hid_report[1] {
                     0 => {
                         let _ = event_sender.send(LedEvent::Off).await;
                     }

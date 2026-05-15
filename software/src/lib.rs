@@ -169,7 +169,7 @@ impl BusyLight {
 
     async fn send_value(&mut self, value: u8) -> Result<(), BusyLightError> {
         self.writer
-            .write_output_report(&[0x00, value])
+            .write_output_report(&[0x01, value])
             .await
             .map_err(Into::into)
     }
@@ -179,12 +179,12 @@ impl BusyLight {
     }
 
     pub async fn read_state(&mut self) -> Result<BusyLightState, BusyLightError> {
-        let mut buf = [0u8; 2];
+        let mut buf = [0x02, 0x00];
         let read_len = self.feature.read_feature_report(&mut buf).await?;
 
         match read_len {
-            // Backends that return report ID 0 + one-byte payload.
-            2 if buf[0] == 0 => BusyLightState::try_from(buf[1]),
+            // Backends that return report ID + one-byte payload.
+            2 => BusyLightState::try_from(buf[1]),
 
             // Backends that return only the payload for unnumbered reports.
             1 => BusyLightState::try_from(buf[0]),
@@ -194,15 +194,14 @@ impl BusyLight {
     }
 
     pub async fn wait_for_state_change(&mut self) -> Result<BusyLightState, BusyLightError> {
-        let mut value = 0u8;
-        let read_len = self
-            .reader
-            .read_input_report(core::slice::from_mut(&mut value))
-            .await?;
-        if read_len == 0 {
+        let mut buf = [0u8; 2];
+        let read_len = self.reader.read_input_report(&mut buf).await?;
+        println!("{:?} {}", buf, read_len);
+
+        if read_len != 2 || buf[0] != 0x03 {
             Err(BusyLightError::InvalidInputReport)
         } else {
-            BusyLightState::try_from(value)
+            BusyLightState::try_from(buf[1])
         }
     }
 }
